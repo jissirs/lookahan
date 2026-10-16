@@ -1,0 +1,270 @@
+/*
+ * สไตล์หน้า Ai (ใช้สี/ตัวแปรกลางจาก components/ui.css เช่น --blue, --cream, --tan)
+ * ตัวการ์ดกราฟอยู่ที่ components/charts/charts.css
+ */
+
+.ai-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ai-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 24px;
+}
+
+/* ป้าย "โหมดจำลอง" */
+.ai-badge {
+  padding: 3px 14px;
+  border: 1px dashed #b4b4b8;
+  border-radius: 999px;
+  color: #52514e;
+  font-size: 14px;
+}
+
+.ai-heading {
+  margin-bottom: 14px !important;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.ai-section {
+  margin-top: 40px;
+}
+
+.ai-note {
+  margin: -6px 0 16px !important;
+  color: #52514e;
+  font-size: 14px;
+}
+
+/* ---------- 1) สรุปจาก AI ---------- */
+.ai-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 240px;
+  padding: clamp(22px, 4vw, 36px);
+  overflow: hidden;
+  border: 1px solid #d8e4d0;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(120, 170, 255, 0.22), transparent 45%),
+    linear-gradient(135deg, #eef5e8 0%, #e6eef9 100%);
+  box-shadow: 0 1px 2px rgba(31, 42, 36, 0.05), 0 8px 24px rgba(31, 42, 36, 0.07);
+}
+
+.ai-hero-body {
+  position: relative;
+  z-index: 1;
+  width: 68%;
+}
+
+.ai-hero .ai-heading {
+  margin-bottom: 10px !important;
+}
+
+.ai-summary {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* จุดนำหน้าประโยคสรุป */
+.ai-summary li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.ai-summary li::before {
+  content: '';
+  position: absolute;
+  top: 0.6em;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5f7a4a;
+}
+
+.ai-hero-robot {
+  position: absolute;
+  right: clamp(8px, 4vw, 56px);
+  bottom: 0;
+  width: clamp(120px, 20vw, 240px);
+  pointer-events: none;
+}
+
+/* ---------- 2) ตัวเลขสำคัญ ---------- */
+.ai-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 28px;
+}
+
+/* ค่าที่เป็นข้อความ/ช่วงเวลา ใช้ตัวเล็กลงกว่าตัวเลขล้วนเล็กน้อย */
+.ai-stats .stat-card-value {
+  font-size: 36px;
+}
+
+/* ---------- 3) กราฟ ---------- */
+.ai-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* ---------- 4) คำแนะนำ ---------- */
+.ai-recs {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-rec {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 18px 24px;
+  border: 1px solid #e3e8e0;
+  border-left: 6px solid #ec835a;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(31, 42, 36, 0.05), 0 6px 18px rgba(31, 42, 36, 0.06);
+}
+
+/* แถบสีซ้ายตามความสำคัญ */
+.ai-rec--high { border-left-color: #d03b3b; }
+.ai-rec--medium { border-left-color: #fab219; }
+
+.ai-rec-main {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.ai-rec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 6px;
+}
+
+.ai-rec-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+/* ป้ายความสำคัญมีข้อความกำกับเสมอ (ไม่ใช้สีอย่างเดียว) */
+.ai-priority {
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ai-priority--high { background: #fde8e8; color: #b42323; }
+.ai-priority--medium { background: #fff4cc; color: #8a6a00; }
+
+.ai-rec-detail {
+  margin-top: 2px !important;
+  color: #52514e;
+  font-size: 15px;
+}
+
+.ai-link {
+  color: #2f6b3a;
+  font-weight: 600;
+}
+
+.ai-rec-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ปุ่ม 👍 👎 */
+.ai-feedback {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.ai-feedback button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d5d9d2;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ai-feedback button:hover {
+  background: #f4f7ef;
+  transform: translateY(-1px);
+}
+
+.ai-feedback button[aria-pressed='true'] {
+  border-color: #5f7a4a;
+  background: var(--cream);
+}
+
+/* ---------- 5) เมนูที่ขายไม่ได้ ---------- */
+.ai-blocked {
+  margin: 0;
+  padding: 4px 24px;
+  list-style: none;
+  border: 1px solid #e3e8e0;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.ai-blocked-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding: 14px 0;
+  font-size: 16px;
+}
+
+.ai-blocked-row + .ai-blocked-row {
+  border-top: 1px solid #edf0ea;
+}
+
+.ai-blocked-row strong {
+  min-width: 170px;
+}
+
+.ai-blocked-row > span {
+  color: #52514e;
+}
+
+@media (max-width: 900px) {
+  .ai-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ai-hero {
+    padding-bottom: 150px;
+  }
+
+  .ai-hero-body {
+    width: 100%;
+  }
+}

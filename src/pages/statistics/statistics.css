@@ -1,0 +1,179 @@
+/*
+ * สไตล์หน้า Statistics (ใช้สี/ตัวแปรกลางจาก components/ui.css เช่น --blue, --cream)
+ *
+ * แถบสัดส่วนทุกอัน (สถานะในหมวด, อันดับวัตถุดิบ) รับความกว้างผ่านตัวแปร --share
+ * ที่ JSX ส่งมาเป็นเปอร์เซ็นต์ — ค่านี้ขึ้นกับข้อมูลจึงเขียนใน CSS ตายตัวไม่ได้
+ */
+
+.stats-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats-page .page-title {
+  margin-bottom: 24px !important;
+}
+
+/* ---------- ส่วนหัวข้อของแต่ละบล็อก ---------- */
+.stats-section {
+  margin-top: 40px;
+}
+
+.stats-heading {
+  margin-bottom: 16px !important;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* ---------- 1) การ์ดสรุป ---------- */
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* ---------- 2) กราฟ ---------- */
+/* การ์ดกราฟเรียงต่อกันมีช่องไฟ (ตัวการ์ดอยู่ที่ components/charts/charts.css) */
+.stats-section > .chart-card + .stats-columns,
+.stats-section > .chart-card + .chart-card,
+.stats-section > .stats-columns + .chart-card {
+  margin-top: 20px;
+}
+
+.stats-section > .stats-columns {
+  margin-top: 20px;
+  gap: 20px;
+}
+
+/* ---------- 3) วัตถุดิบที่ใช้บ่อย + วันนี้ vs พรุ่งนี้ (และคอลัมน์คู่ของกราฟ) ---------- */
+.stats-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 40px;
+}
+
+.stats-top {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-top-row {
+  display: grid;
+  grid-template-columns: 32px minmax(90px, 140px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 18px;
+}
+
+.stats-top-rank {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cream);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stats-top-name {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stats-top-name:hover {
+  text-decoration: underline;
+}
+
+.stats-top-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6e9e4;
+}
+
+.stats-top-fill {
+  display: block;
+  width: var(--share);
+  height: 100%;
+  border-radius: 999px;
+  background: #8fae78;
+}
+
+.stats-top-count {
+  min-width: 64px;
+  color: #4a5565;
+  font-size: 15px;
+  text-align: right;
+}
+
+/* ตารางเทียบแบบ "หัวข้อ ... ค่า" */
+.stats-compare {
+  display: grid;
+  margin: 0;
+  padding: 8px 24px;
+  border: 1px solid #e3e8e0;
+  border-radius: 24px;
+  background: #fff;
+}
+
+.stats-compare-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  font-size: 18px;
+}
+
+.stats-compare-row + .stats-compare-row {
+  border-top: 1px solid #edf0ea;
+}
+
+.stats-compare dt {
+  color: #4a5565;
+}
+
+.stats-compare dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.stats-growth {
+  margin-left: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.stats-growth.is-up {
+  background: #e4f6df;
+  color: #2f7a22;
+}
+
+.stats-growth.is-down {
+  background: #fde8e8;
+  color: #b42323;
+}
+
+/* ---------- จอเล็ก ---------- */
+@media (max-width: 900px) {
+  .stats-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-top-row {
+    grid-template-columns: 28px 1fr auto;
+  }
+
+  /* จอแคบ: ซ่อนแถบ เหลือชื่อกับจำนวนเมนู */
+  .stats-top-track {
+    display: none;
+  }
+}

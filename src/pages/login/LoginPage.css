@@ -1,0 +1,237 @@
+/* ออกแบบบนเฟรม 1920x1080 แล้วย่อ/ขยายด้วยหน่วย --u */
+.login-page {
+  --u: min(calc(100vw / 1920), calc(100vh / 1080));
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Itim', 'Comic Sans MS', 'Segoe Print', cursive;
+}
+
+.login-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  overflow: hidden;
+}
+
+.login-ring {
+  position: absolute;
+  top: calc(-323 * var(--u));
+  right: calc(-323 * var(--u));
+  width: calc(646 * var(--u));
+  height: calc(646 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent calc(158 * var(--u)),
+    #ddc6a7 calc(159 * var(--u))
+  );
+}
+
+.login-deco {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.login-clipboard {
+  left: calc(100 * var(--u));
+  top: calc(50 * var(--u));
+  width: calc(330 * var(--u));
+}
+
+.login-box {
+  right: calc(60 * var(--u));
+  bottom: calc(80 * var(--u));
+  width: calc(430 * var(--u));
+}
+
+.login-food {
+  left: 0;
+  bottom: 0;
+  width: calc(690 * var(--u));
+}
+
+.login-form {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: calc(1080 * var(--u));
+  transform: translateY(-50%);
+}
+
+.login-form > * {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.login-title {
+  top: calc(60 * var(--u));
+  font-family: inherit;
+  font-weight: 400;
+  font-size: calc(80 * var(--u));
+  line-height: calc(100 * var(--u));
+  letter-spacing: 0;
+  color: #000;
+  left: calc(-25 * var(--u));
+  right: calc(25 * var(--u));
+}
+
+.login-input {
+  width: calc(844 * var(--u));
+  height: calc(155 * var(--u));
+  box-sizing: border-box;
+  padding: 0 calc(40 * var(--u));
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: calc(48 * var(--u));
+  color: #000;
+}
+
+.login-input:placeholder-shown {
+  caret-color: transparent;
+}
+
+.login-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+  opacity: 1;
+}
+
+.login-input-name {
+  top: calc(266 * var(--u));
+  background: #ffde59;
+}
+
+.login-password-wrap {
+  top: calc(485 * var(--u));
+  width: calc(844 * var(--u));
+  height: calc(155 * var(--u));
+}
+
+.login-input-password {
+  width: 100%;
+  height: 100%;
+  padding-right: calc(110 * var(--u));
+  background: #febc5a;
+}
+
+.login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: calc(30 * var(--u));
+  transform: translateY(-50%);
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: calc(44 * var(--u));
+  line-height: 1;
+  cursor: pointer;
+}
+
+.login-link {
+  font-size: calc(36 * var(--u));
+  line-height: calc(50 * var(--u));
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.login-forget {
+  top: calc(680 * var(--u));
+  color: #6773b3;
+}
+
+.login-button {
+  top: calc(761 * var(--u));
+  width: calc(333 * var(--u));
+  height: calc(115 * var(--u));
+  border: 0;
+  border-radius: 999px;
+  background: #c7d1d9;
+  color: #000;
+  font-family: Arial, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: calc(36 * var(--u));
+  cursor: pointer;
+}
+
+.login-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.login-button:hover {
+  background: #b7c3cd;
+}
+
+.login-register {
+  top: calc(907 * var(--u));
+  left: calc(8 * var(--u));
+  right: calc(-8 * var(--u));
+  color: #1a1a8c;
+}
+
+/* SweetAlert2 render อยู่นอก .login-page จึงใช้ selector ระดับ global */
+.login-swal .swal2-confirm {
+  background-color: #f59e0b;
+}
+
+.login-swal--error .swal2-confirm {
+  background-color: #ef4444;
+}
+
+/* ---------- ตกแต่งเพิ่ม (ไม่แตะตำแหน่ง/สีหลักของดีไซน์ต้นฉบับ) ---------- */
+/* ช่องกรอก: มุมโค้งเล็กน้อย + เงานุ่ม + วงโฟกัสชัดเจนเวลาพิมพ์ */
+.login-input {
+  border-radius: calc(18 * var(--u));
+  box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(120, 80, 0, 0.14);
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.login-input:focus {
+  box-shadow: 0 0 0 calc(5 * var(--u)) rgba(232, 146, 0, 0.55), 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(120, 80, 0, 0.14);
+}
+
+/* ปุ่ม: เงา + ยกขึ้นเล็กน้อยตอน hover */
+.login-button {
+  box-shadow: 0 calc(8 * var(--u)) calc(20 * var(--u)) rgba(60, 80, 100, 0.25);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(calc(-3 * var(--u)));
+  box-shadow: 0 calc(12 * var(--u)) calc(24 * var(--u)) rgba(60, 80, 100, 0.3);
+}
+
+.login-link {
+  transition: opacity 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-button,
+  .login-input {
+    transition: none;
+  }
+
+  .login-button:hover:not(:disabled) {
+    transform: none;
+  }
+}

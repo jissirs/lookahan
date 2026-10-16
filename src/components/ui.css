@@ -1,0 +1,574 @@
+/*
+ * สไตล์กลางของหน้า Stock / Menu (โหลดผ่าน PageShell)
+ * แบ่งเป็นหมวด: โครงหน้า → ปุ่ม → ฟอร์ม → ค้นหา → สถานะ → การ์ดสถิติ → ปุ่ม +/− → สวิตช์ → อัปโหลดรูป → ลิงก์กลับ → จอเล็ก
+ * ค่าสีหลักของดีไซน์ประกาศเป็นตัวแปรที่ .page (--blue, --cream, --tan, --orange, --red) แก้สีที่นี่ที่เดียว
+ */
+.page {
+  --bg: #f6f8f3;
+  --blue: #c8d1da;
+  --cream: #eff1ca;
+  --tan: #dfc7a8;
+  --orange: #ffa31a;
+  --red: #ff3131;
+  --ink: #1a1a1a;
+  min-height: 100vh;
+  background: var(--bg);
+  color: #000;
+  text-align: left;
+  font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
+}
+
+.page-container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.5vw, 44px) clamp(16px, 4vw, 40px) 64px;
+}
+
+.page h1,
+.page h2,
+.page p {
+  margin: 0;
+  color: inherit;
+  letter-spacing: 0;
+}
+
+.page-title {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 20px;
+  margin-bottom: 28px;
+}
+
+.page-toolbar .page-title {
+  margin-right: 12px;
+}
+
+.page-empty {
+  padding: 40px 16px;
+  color: #6b766f;
+  text-align: center;
+  font-size: 18px;
+}
+
+.box {
+  box-sizing: border-box;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* ---------- ปุ่ม ---------- */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #000;
+  font-family: inherit;
+  font-size: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.btn-pill:hover:not(:disabled) {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.btn-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-pill--tan { background: var(--tan); }
+.btn-pill--cream { background: var(--cream); }
+.btn-pill--gray { background: #b4b4b8; }
+.btn-pill--brown { background: #a8927f; color: #4a3424; }
+.btn-pill--sm { padding: 6px 18px; font-size: 16px; font-weight: 600; }
+.btn-pill--lg { min-width: 260px; padding: 28px 40px; font-size: 28px; }
+
+/* ---------- ฟอร์ม ---------- */
+.field {
+  margin-bottom: 20px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.field-input,
+.field-select,
+.field-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #000;
+  font-family: inherit;
+  font-size: 20px;
+  outline: none;
+}
+
+.field-input:focus-visible,
+.field-select:focus-visible,
+.field-textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(95, 122, 74, 0.5);
+}
+
+.field-select {
+  appearance: none;
+  padding-right: 52px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='14' viewBox='0 0 20 14'><path d='M0 0h20L10 14z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  cursor: pointer;
+}
+
+.field-textarea {
+  min-height: 150px;
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  resize: vertical;
+}
+
+.field-error {
+  margin-top: 6px;
+  color: #d32f2f;
+  font-size: 15px;
+}
+
+.field--pill .field-input,
+.field--pill .field-select {
+  border-radius: 999px;
+  padding-left: 28px;
+}
+
+/* ---------- ค้นหา ---------- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(100%, 440px);
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--blue);
+}
+
+.search-bar:focus-within {
+  box-shadow: 0 0 0 3px rgba(95, 122, 74, 0.5);
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 0;
+  border: 0;
+  background: none;
+  color: #000;
+  font-family: inherit;
+  font-size: 20px;
+  outline: none;
+}
+
+.search-bar input::placeholder {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.search-bar svg {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: #000;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ---------- สถานะ ---------- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.status-dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.status-dot--normal { background: #7ed956; }
+.status-dot--low { background: #ffde59; }
+.status-dot--critical { background: #ff3131; }
+
+/* ---------- การ์ดสถิติ ---------- */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 130px;
+  box-sizing: border-box;
+  padding: 24px 28px;
+  border-radius: 32px;
+  background: var(--blue);
+}
+
+.stat-card-value {
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.stat-card-label {
+  font-size: 22px;
+}
+
+/* ---------- ปุ่ม + / − สีส้ม ---------- */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--orange);
+}
+
+.stepper-btn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--red);
+  color: #000;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  background: #e62626;
+}
+
+.stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.price-box {
+  min-width: 110px;
+  box-sizing: border-box;
+  padding: 12px 18px;
+  border-radius: 4px;
+  background: var(--blue);
+  font-size: 24px;
+  text-align: center;
+}
+
+/* ---------- สวิตช์ ---------- */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.toggle-track {
+  position: relative;
+  width: 84px;
+  height: 44px;
+  box-sizing: border-box;
+  border: 2px solid #a9a9a9;
+  border-radius: 999px;
+  background: #b3b3b3;
+  transition: background 0.2s ease;
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.toggle[aria-checked='true'] .toggle-track {
+  border-color: #6db868;
+  background: #8bd68a;
+}
+
+.toggle[aria-checked='true'] .toggle-track::after {
+  transform: translateX(40px);
+}
+
+.toggle:focus-visible .toggle-track {
+  box-shadow: 0 0 0 3px rgba(95, 122, 74, 0.5);
+}
+
+/* ---------- อัปโหลดรูป ---------- */
+.image-upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 370px);
+  aspect-ratio: 1 / 0.96;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  font-size: 22px;
+  line-height: 1.8;
+}
+
+.image-upload:hover {
+  background: #fafbf7;
+}
+
+.image-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.image-upload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- ลิงก์กลับ ---------- */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #000;
+  font-size: 24px;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- จอเล็ก ---------- */
+@media (max-width: 600px) {
+  .btn-pill--lg {
+    flex: 1;
+    min-width: 0;
+    padding: 20px 24px;
+    font-size: 22px;
+  }
+
+  .stat-card {
+    min-height: 96px;
+    padding: 14px 14px;
+    border-radius: 24px;
+  }
+
+  .stat-card-value {
+    font-size: 30px;
+  }
+
+  .stat-card-label {
+    font-size: 14px;
+  }
+
+  .page-toolbar .page-title {
+    flex-basis: 100%;
+  }
+
+  .filter-dropdown {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+}
+
+/* ---------- ตกแต่งเพิ่ม: เงานุ่ม / ลูกเล่นตอน hover / ฉากหลัง (ธีมสีและกรอบดำเดิมไม่เปลี่ยน) ---------- */
+.page {
+  background: linear-gradient(180deg, #fbfcf7 0%, var(--bg) 280px);
+}
+
+/* เนื้อหาค่อย ๆ เลื่อนขึ้นตอนเปิดหน้า */
+.page-container {
+  animation: page-enter 0.35s ease both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.box {
+  box-shadow: 0 6px 18px rgba(26, 26, 26, 0.08);
+}
+
+.btn-pill {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.btn-pill:hover:not(:disabled) {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+
+.btn-pill:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.btn-pill:focus-visible {
+  outline: 3px solid rgba(95, 122, 74, 0.6);
+  outline-offset: 2px;
+}
+
+.field-input,
+.field-select,
+.field-textarea,
+.search-bar {
+  transition: box-shadow 0.2s ease;
+}
+
+.stat-card {
+  box-shadow: 0 6px 16px rgba(60, 80, 100, 0.14);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(60, 80, 100, 0.2);
+}
+
+.stepper {
+  box-shadow: 0 3px 8px rgba(160, 90, 0, 0.25);
+}
+
+.stepper-btn {
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.back-link {
+  transition: transform 0.15s ease;
+}
+
+.back-link:hover {
+  transform: translateX(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-container {
+    animation: none;
+  }
+
+  .stat-card:hover,
+  .back-link:hover,
+  .btn-pill:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---------- แถบเครื่องมือบรรทัดเดียว (หน้า Stock) ---------- */
+/* ซ่อนข้อความจากสายตาแต่ยังให้โปรแกรมอ่านหน้าจออ่านได้ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* จอกว้างพอ: ทุกอย่างอยู่บรรทัดเดียว ช่องค้นหายืดหดตามพื้นที่ที่เหลือ */
+@media (min-width: 1000px) {
+  .page-toolbar--inline {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+
+  .page-toolbar--inline .search-bar {
+    flex: 1 1 0;
+    min-width: 160px;
+    width: auto;
+  }
+
+  .page-toolbar--inline .filter-dropdown {
+    flex: none;
+    min-width: 170px;
+  }
+
+  .page-toolbar--inline .btn-pill {
+    flex: none;
+    padding: 12px 22px;
+    font-size: 18px;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- หน้าสูงพอดีจอ (PageShell fit) ---------- */
+.page--fit {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page--fit .page-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 24px;
+}
+
+.page--fit .page-toolbar {
+  flex: none;
+}

@@ -1,0 +1,290 @@
+/*
+ * สไตล์หน้า Order และ Create order (ใช้สี/ตัวแปรกลางจาก components/ui.css เช่น --blue, --cream, --tan)
+ * ป้ายสถานะเมนู (.menu-chip--*) ใช้ร่วมกับหน้า Menu จึงนิยามอยู่ใน pages/menu/menu.css
+ */
+
+/* ---------- หน้า Order ---------- */
+.order-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.order-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 24px;
+}
+
+.order-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.order-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+/* การ์ดออเดอร์: เลข+เวลา | รายการ | ราคา+สถานะ | ปุ่ม */
+.order-card {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px clamp(16px, 3vw, 36px);
+  padding: 18px 28px;
+  border-radius: 32px;
+  background: var(--blue);
+}
+
+.order-card-number {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.order-card-time {
+  margin-top: 2px !important;
+  color: #3a4654;
+  font-size: 14px;
+}
+
+.order-card-items ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.order-card-qty {
+  color: #3a4654;
+  font-weight: 400;
+}
+
+.order-card-note {
+  margin-top: 4px !important;
+  color: #3a4654;
+  font-size: 14px;
+}
+
+.order-card-side {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.order-card-total {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.order-card-actions {
+  display: grid;
+  gap: 8px;
+}
+
+/* ป้ายสถานะออเดอร์ */
+.order-chip {
+  padding: 2px 16px;
+  border-radius: 999px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.order-chip--new { background: var(--tan); }
+.order-chip--cooking { background: #ffd98a; }
+.order-chip--ready { background: #a9d9a0; }
+.order-chip--done { background: #d9dde2; }
+.order-chip--cancelled { background: #f3c1c1; }
+
+@media (max-width: 900px) {
+  .order-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-radius: 24px;
+    padding: 16px 18px;
+  }
+
+  .order-card-items,
+  .order-card-actions {
+    grid-column: 1 / -1;
+  }
+
+  .order-card-actions {
+    grid-auto-flow: column;
+    justify-content: start;
+  }
+}
+
+/* ---------- หน้า Create order ---------- */
+.order-create {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.order-create-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 32px;
+  margin-bottom: 24px;
+}
+
+.order-menu-list {
+  margin: 0 0 24px;
+  padding: 8px clamp(16px, 3vw, 32px);
+  list-style: none;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.order-menu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 150px;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 14px 0;
+}
+
+.order-menu-row + .order-menu-row {
+  border-top: 1px solid #e6e8ea;
+}
+
+.order-menu-info {
+  display: grid;
+}
+
+.order-menu-info strong {
+  font-size: 19px;
+}
+
+.order-menu-info span {
+  color: #6b766f;
+  font-size: 14px;
+}
+
+.order-menu-price {
+  font-size: 19px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* เมนูที่เลือกไม่ได้: จางลง */
+.order-menu-row.is-disabled .order-menu-info,
+.order-menu-row.is-disabled .order-menu-price {
+  opacity: 0.5;
+}
+
+.order-menu-row .menu-chip {
+  justify-self: end;
+}
+
+/* ปุ่ม − จำนวน + */
+.qty-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  justify-self: end;
+  width: 140px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--blue);
+}
+
+.qty-control button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.qty-control button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.qty-control button:hover:not(:disabled) {
+  background: var(--cream);
+}
+
+.qty-control output {
+  min-width: 32px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* สรุปออเดอร์ */
+.order-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px clamp(20px, 4vw, 56px);
+  padding: 24px clamp(16px, 3vw, 32px);
+}
+
+.order-summary-lines ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 18px;
+}
+
+.order-summary-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+}
+
+.order-summary-empty {
+  color: #6b766f;
+  font-size: 18px;
+}
+
+.order-summary-side {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.order-summary-total {
+  font-size: 20px;
+}
+
+.order-summary-total strong {
+  margin-left: 8px;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+@media (max-width: 800px) {
+  .order-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .order-menu-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .order-menu-price {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .order-menu-row .qty-control,
+  .order-menu-row .menu-chip {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

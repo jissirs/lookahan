@@ -1,0 +1,375 @@
+/* ออกแบบบนความกว้าง 1920 แล้วย่อ/ขยายตามความกว้างจอ */
+.app-header {
+  --u: calc(100vw / 1920);
+  --fs: max(14px, calc(28 * var(--u)));
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  height: calc(120 * var(--u));
+  background: #c2ccb3;
+  font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
+}
+
+.app-header-logo-wrap {
+  position: absolute;
+  left: calc(50 * var(--u));
+  top: calc(8 * var(--u));
+}
+
+.app-header-logo-btn {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.app-header-logo-btn:focus-visible {
+  outline: 2px solid #5f7a4a;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.app-header-logo {
+  display: block;
+  width: calc(112 * var(--u));
+}
+
+/* ---------- Navbar dropdown (กดที่โลโก้) ---------- */
+.app-header-nav {
+  position: fixed;
+  top: calc(120 * var(--u));
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: max(180px, calc(500 * var(--u)));
+  background: #dee4d6;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.app-header-nav-item {
+  display: block;
+  padding: max(10px, calc(34 * var(--u))) 16px;
+  color: #000;
+  font-size: max(16px, calc(38 * var(--u)));
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.app-header-nav-item + .app-header-nav-item {
+  border-top: 2px solid #c2c4c1;
+}
+
+.app-header-nav-item:hover,
+.app-header-nav-item:focus-visible {
+  background: #cfd8c4;
+  outline: none;
+}
+
+/* ---------- กระดิ่ง ---------- */
+.app-header-bell-wrap {
+  position: absolute;
+  left: calc(1540 * var(--u));
+  top: calc(24 * var(--u));
+}
+
+.app-header-bell {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.app-header-bell img {
+  display: block;
+  width: calc(62 * var(--u));
+}
+
+.app-header-badge {
+  position: absolute;
+  top: calc(-6 * var(--u));
+  right: calc(-12 * var(--u));
+  min-width: max(14px, calc(28 * var(--u)));
+  height: max(14px, calc(28 * var(--u)));
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ff3131;
+  color: #fff;
+  font-size: max(9px, calc(18 * var(--u)));
+  font-weight: 700;
+  line-height: max(14px, calc(28 * var(--u)));
+  text-align: center;
+}
+
+/* ---------- ชื่อผู้ใช้ ---------- */
+.app-header-user-wrap {
+  position: absolute;
+  left: calc(1632 * var(--u));
+  top: calc(35 * var(--u));
+}
+
+.app-header-user {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #000;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(42 * var(--u));
+  line-height: calc(50 * var(--u));
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-header-caret {
+  font-size: calc(24 * var(--u));
+}
+
+/* ---------- dropdown ---------- */
+.app-header-panel {
+  position: absolute;
+  top: calc(100% + 12 * var(--u));
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: #000;
+  font-size: var(--fs);
+  z-index: 10;
+}
+
+.app-header-panel--bell {
+  left: calc(-380 * var(--u));
+  width: max(260px, calc(480 * var(--u)));
+  padding: 12px 0;
+}
+
+.app-header-panel--user {
+  right: 0;
+  min-width: max(150px, calc(260 * var(--u)));
+  padding: 6px 0;
+}
+
+.app-header-panel-title {
+  margin: 0;
+  padding: 4px 16px 10px;
+  font-weight: 700;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.app-header-empty {
+  margin: 0;
+  padding: 14px 16px 6px;
+  color: #6b7280;
+}
+
+.app-header-notifications {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.app-header-notification {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  line-height: 1.35;
+}
+
+.app-header-notification + .app-header-notification {
+  border-top: 1px solid #f1f2f4;
+}
+
+.app-header-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.app-header-dot--warn { background: #ffde59; }
+.app-header-dot--danger { background: #ff3131; }
+.app-header-dot--info { background: #5b8def; }
+
+.app-header-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-header-menu-item:hover,
+.app-header-menu-item:focus-visible {
+  background: #f1f2f4;
+  outline: none;
+}
+
+.app-header-notification-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-header-notification-link:hover {
+  text-decoration: underline;
+}
+
+/* =====================================================================
+ * ลูกเล่นตอนชี้เมาส์ (hover) และตอนโฟกัสด้วยคีย์บอร์ด (focus-visible)
+ * ทุกอันใช้ transition สั้นๆ ให้รู้สึกนุ่ม ไม่กระตุก
+ * ===================================================================== */
+
+/* ---------- โลโก้: ขยายนิดๆ + เอียงเล็กน้อย เหมือนกวักมือเรียก ---------- */
+.app-header-logo {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+}
+
+.app-header-logo-btn:hover .app-header-logo,
+.app-header-logo-btn:focus-visible .app-header-logo,
+.app-header-logo-btn[aria-expanded='true'] .app-header-logo {
+  transform: scale(1.08) rotate(-3deg);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.18));
+}
+
+.app-header-logo-btn:active .app-header-logo {
+  transform: scale(0.95);
+}
+
+/* ---------- กระดิ่ง: สั่นเหมือนกำลังดัง ---------- */
+.app-header-bell img {
+  transform-origin: 50% 12%; /* หมุนจากหัวกระดิ่ง */
+}
+
+.app-header-bell:hover img,
+.app-header-bell:focus-visible img {
+  animation: header-bell-ring 0.7s ease-in-out;
+}
+
+@keyframes header-bell-ring {
+  0%   { transform: rotate(0); }
+  15%  { transform: rotate(16deg); }
+  30%  { transform: rotate(-14deg); }
+  45%  { transform: rotate(10deg); }
+  60%  { transform: rotate(-8deg); }
+  75%  { transform: rotate(4deg); }
+  100% { transform: rotate(0); }
+}
+
+/* ป้ายตัวเลขเด้งนิดๆ ตอนชี้กระดิ่ง */
+.app-header-badge {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.app-header-bell:hover .app-header-badge {
+  transform: scale(1.15);
+}
+
+/* ---------- ชื่อผู้ใช้: ขึ้นพื้นสีขาวโปร่งเป็นแคปซูล + ลูกศรกระดก ---------- */
+/* padding + margin ติดลบหักล้างกัน จึงไม่ทำให้ตำแหน่งในแถบขยับ */
+.app-header-user {
+  padding: 4px 14px;
+  margin: -4px -14px;
+  border-radius: 999px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-header-user:hover,
+.app-header-user:focus-visible,
+.app-header-user[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.app-header-caret {
+  transition: transform 0.2s ease;
+}
+
+.app-header-user:hover .app-header-caret,
+.app-header-user[aria-expanded='true'] .app-header-caret {
+  transform: translateY(2px);
+}
+
+.app-header-user[aria-expanded='true'] .app-header-caret {
+  transform: rotate(180deg);
+}
+
+/* ---------- รายการในเมนูนำทาง: มีแถบสีเขียวโผล่ด้านซ้าย + ตัวอักษรขยับ ---------- */
+.app-header-nav-item {
+  transition: background 0.18s ease, box-shadow 0.18s ease, letter-spacing 0.18s ease;
+}
+
+.app-header-nav-item:hover,
+.app-header-nav-item:focus-visible {
+  box-shadow: inset 6px 0 0 #5f7a4a;
+  letter-spacing: 0.09em;
+}
+
+/* ---------- Sign out และรายการแจ้งเตือน ---------- */
+.app-header-menu-item {
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+
+.app-header-menu-item:hover,
+.app-header-menu-item:focus-visible {
+  padding-left: 24px; /* ขยับเข้าเล็กน้อย บอกว่ากำลังชี้อยู่ */
+}
+
+.app-header-notification {
+  transition: background 0.15s ease;
+}
+
+.app-header-notification:hover {
+  background: #f4f7ef;
+}
+
+/* ---------- แผงที่เปิดออกมา: เลื่อนลงมาพร้อมค่อยๆ ชัดขึ้น ---------- */
+.app-header-panel,
+.app-header-nav {
+  animation: header-panel-in 0.18s ease-out;
+}
+
+@keyframes header-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ผู้ใช้ที่ตั้งค่า "ลดการเคลื่อนไหว" ในระบบ: ปิดแอนิเมชันและการขยับทั้งหมด */
+@media (prefers-reduced-motion: reduce) {
+  .app-header *,
+  .app-header-nav,
+  .app-header-panel {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .app-header-logo-btn:hover .app-header-logo,
+  .app-header-nav-item:hover {
+    transform: none;
+    letter-spacing: normal;
+  }
+}

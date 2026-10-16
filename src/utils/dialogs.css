@@ -1,0 +1,30 @@
+.app-swal {
+  font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
+}
+
+.app-swal .swal2-confirm {
+  background-color: #f59e0b;
+}
+
+.app-swal .swal2-deny {
+  background-color: #8a8f98;
+}
+
+.app-swal .swal2-cancel {
+  background-color: #c8d1da;
+  color: #000;
+}
+
+.app-swal-label {
+  display: block;
+  margin: 14px 0 6px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.app-swal-field {
+  width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}

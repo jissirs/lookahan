@@ -1,0 +1,381 @@
+.home-page {
+  --ink: #1f2a24;
+  --muted: #6b766f;
+  --line: #e3e8e0;
+  --surface: #fff;
+  --bg: #f6f8f3;
+  --sage: #c2ccb3;
+  --sage-deep: #5f7a4a;
+  --shadow: 0 1px 2px rgba(31, 42, 36, 0.05), 0 8px 24px rgba(31, 42, 36, 0.07);
+  --shadow-hover: 0 2px 4px rgba(31, 42, 36, 0.06), 0 14px 32px rgba(31, 42, 36, 0.12);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  text-align: left;
+  font-family: 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
+}
+
+.home-container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) clamp(16px, 4vw, 40px) 64px;
+}
+
+.home-container h1,
+.home-container h2,
+.home-container p {
+  margin: 0;
+  color: inherit;
+  letter-spacing: 0;
+}
+
+/* ---------- หัวเรื่อง ---------- */
+.home-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 28px;
+}
+
+.home-title {
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.home-section-title {
+  margin-bottom: 14px !important;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.home-block {
+  margin-top: 40px;
+}
+
+/* ---------- Shortcuts (คงธีมต้นฉบับ: พื้นเทาน้ำเงิน ปุ่มสีครีม หัวข้อสีตามประเภท) ---------- */
+.home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.home-shortcut {
+  --accent: #5b3a2e;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 290px;
+  padding: 22px 28px 30px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #d1d9e1 0%, #c8d1da 55%, #c2ccd6 100%);
+  box-shadow: 0 1px 2px rgba(40, 55, 75, 0.08), 0 10px 24px rgba(40, 55, 75, 0.12);
+  font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-shortcut:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 2px 4px rgba(40, 55, 75, 0.1), 0 16px 32px rgba(40, 55, 75, 0.18);
+}
+
+.home-shortcut--stock { --accent: #5b3a2e; }
+.home-shortcut--order { --accent: #0b4aa6; }
+.home-shortcut--menu { --accent: #111; }
+
+.home-shortcut-title {
+  color: var(--accent) !important;
+  text-align: center;
+  font-family: inherit;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em !important;
+}
+
+/* เส้นเน้นสั้นๆ ใต้หัวข้อ */
+.home-shortcut-title::after {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+
+.home-shortcut-heading {
+  align-self: flex-start;
+  margin-top: 24px !important;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.01em !important;
+}
+
+.home-shortcut-unit {
+  align-self: flex-start;
+  margin-top: 4px !important;
+  color: #4a5666;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.home-shortcut-button {
+  margin-top: auto;
+  padding: 12px 44px;
+  border-radius: 999px;
+  background: #eff1ca;
+  box-shadow: 0 2px 6px rgba(40, 55, 75, 0.16);
+  color: #000;
+  font-size: 20px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.home-shortcut-button:hover,
+.home-shortcut-button:focus-visible {
+  background: #f6f8d6;
+  box-shadow: 0 4px 12px rgba(40, 55, 75, 0.22);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+/* ---------- Ai forecast ---------- */
+.home-forecast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 280px;
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid #d8e4d0;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(120, 170, 255, 0.22), transparent 45%),
+    linear-gradient(135deg, #eef5e8 0%, #e6eef9 100%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.home-forecast-body {
+  position: relative;
+  z-index: 1;
+  width: 64%;
+}
+
+.home-forecast-eyebrow {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--sage-deep);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.home-forecast-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+
+.home-forecast-number {
+  font-size: clamp(56px, 8vw, 88px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.home-forecast-unit {
+  align-self: flex-end;
+  padding-bottom: 8px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.home-forecast-hero-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.home-forecast-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-forecast-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.home-chip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(31, 42, 36, 0.08);
+}
+
+.home-chip img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.home-forecast-robot {
+  position: absolute;
+  right: clamp(8px, 4vw, 56px);
+  bottom: 0;
+  width: clamp(150px, 24vw, 280px);
+  pointer-events: none;
+}
+
+/* ---------- Low stock / Today Statistics ---------- */
+.home-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.home-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.home-card-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.home-card-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #fde8e8;
+  color: #b42323;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.home-low-stock,
+.home-stats {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-low-stock-row,
+.home-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 17px;
+}
+
+.home-low-stock-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.home-low-stock-qty {
+  color: var(--muted);
+}
+
+.home-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.home-dot--warn { background: #f5c518; }
+.home-dot--danger { background: #ef3b3b; }
+.home-dot--ok { background: #5fcf4f; }
+
+.home-status {
+  min-width: 72px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.home-status--warn { background: #fff4cc; color: #8a6a00; }
+.home-status--danger { background: #fde8e8; color: #b42323; }
+.home-status--ok { background: #e4f6df; color: #2f7a22; }
+
+.home-stats-label {
+  flex: 1;
+  color: var(--muted);
+}
+
+.home-stats-value {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.home-card-link {
+  align-self: flex-start;
+  margin-top: 18px;
+  color: var(--sage-deep);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-card-link:hover,
+.home-card-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .home-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
+  .home-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .home-forecast-body {
+    width: 100%;
+  }
+
+  .home-forecast {
+    padding-bottom: 150px;
+  }
+}

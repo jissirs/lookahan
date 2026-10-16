@@ -1,0 +1,206 @@
+/* ---------- Low stock ---------- */
+.low-stock {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.low-stock-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px !important;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+}
+
+.low-stock-title svg {
+  width: 44px;
+  height: 44px;
+  fill: #000;
+  stroke: #fff;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.low-stock-title circle {
+  fill: #fff;
+  stroke: none;
+}
+
+.low-stock-box {
+  padding: 24px clamp(16px, 4vw, 56px);
+}
+
+.low-stock-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.low-stock-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1.4fr auto;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 22px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.low-stock-row + .low-stock-row {
+  border-top: 1px solid #e6e8ea;
+}
+
+.low-stock-name {
+  color: inherit;
+  text-decoration: none;
+}
+
+.low-stock-name:hover {
+  text-decoration: underline;
+}
+
+.low-stock-add {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #000;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.low-stock-add:hover,
+.low-stock-add:focus-visible {
+  background: #eff1ca;
+  outline: none;
+}
+
+@media (max-width: 760px) {
+  .low-stock-row {
+    grid-template-columns: 1fr 1fr;
+    font-size: 18px;
+  }
+}
+
+/* ---------- รายละเอียดวัตถุดิบ ---------- */
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.detail-box {
+  overflow: visible;
+}
+
+.detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px clamp(16px, 4vw, 56px);
+  padding: 22px clamp(16px, 3vw, 40px);
+  border-bottom: 4px double #1a1a1a;
+}
+
+.detail-name {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.detail-body {
+  padding: 24px clamp(16px, 3vw, 40px) 36px;
+}
+
+.detail-section {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.detail-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px clamp(32px, 8vw, 120px);
+  margin: 24px 0 32px;
+}
+
+.detail-stock {
+  display: grid;
+  gap: 10px;
+  font-size: 32px;
+}
+
+.detail-qty {
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.detail-stock .status-dot {
+  width: 44px;
+  height: 44px;
+}
+
+.detail-price {
+  display: grid;
+  gap: 8px;
+}
+
+.detail-price-label {
+  font-size: 22px;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 clamp(0px, 4vw, 60px);
+}
+
+.detail-history {
+  padding: 28px clamp(16px, 3vw, 40px) 36px;
+}
+
+.detail-history .detail-section {
+  margin-bottom: 20px;
+}
+
+.history-table {
+  max-width: none;
+  border-radius: 6px;
+}
+
+.history-table th,
+.history-table td {
+  font-weight: 700;
+}
+
+.history-table td {
+  font-size: 22px;
+  font-weight: 400;
+}
+
+/* ---------- สร้างวัตถุดิบ ---------- */
+.create {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.create-title {
+  margin-bottom: 28px !important;
+  text-align: center;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 800;
+}
+
+.create-form .btn-pill {
+  margin-top: 12px;
+}
