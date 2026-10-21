@@ -1,33 +1,15 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Claude Code (ไฟล์เฉพาะเครื่อง)
+# ไฟล์เฉพาะเครื่อง / ความลับ
+.env
+.env.*
+!.env.example
 .claude/
+.DS_Store
+
+# Frontend (ดู frontend/.gitignore เพิ่มเติม)
+node_modules/
+dist/
 
 # Backend (Flask)
-.env
 Backend/.env
 Backend/instance/*
 !Backend/instance/.gitkeep
