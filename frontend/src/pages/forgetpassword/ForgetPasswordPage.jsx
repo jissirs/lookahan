@@ -29,7 +29,7 @@ const STEPS = {
 
 function ForgetPasswordPage() {
   const navigate = useNavigate()
-  const { requestOtp, verifyOtp, resetPassword, isMockApi } = useAuth()
+  const { requestOtp, verifyOtp, resetPassword } = useAuth()
 
   const [step, setStep] = useState('email') // 'email' | 'otp' | 'reset'
   const [submitting, setSubmitting] = useState(false) // กำลังรอ api (กันกดซ้ำ)
@@ -51,12 +51,19 @@ function ForgetPasswordPage() {
       const { otp: mockOtp } = await requestOtp(email)
       setStep('otp')
 
-      // โหมดจำลองไม่มีอีเมลจริง จึงแสดง OTP ให้เห็นตรงนี้ (ระบบจริงไม่ต้องแสดง — ส่งทางอีเมลเท่านั้น)
-      if (isMockApi) {
+      if (mockOtp) {
+        // Backend โหมดทดลอง (ยังไม่ตั้งค่าอีเมล) ตอบ OTP กลับมาให้เห็นตรงนี้
         await notify({
           icon: 'info',
-          title: 'Mock mode',
-          text: `Your OTP is ${mockOtp} (a real system would email it to you)`,
+          title: 'Dev mode',
+          text: `Your OTP is ${mockOtp} (email is not configured on the server, so it is shown here)`,
+        })
+      } else {
+        // ระบบจริง: OTP ถูกส่งทางอีเมลแล้ว — บอกผู้ใช้ให้ไปเปิดอีเมล
+        await notify({
+          icon: 'success',
+          title: 'OTP sent',
+          text: `We sent a 6-digit OTP to ${email.trim()}. It expires in 5 minutes. If you don't see it, check your spam folder.`,
         })
       }
     } else if (step === 'otp') {

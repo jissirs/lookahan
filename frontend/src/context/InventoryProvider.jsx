@@ -13,10 +13,11 @@
  *   - สร้างใหม่จากฟอร์ม (addIngredient, addMenu, createOrder)
  *       "โยน error ต่อ" ให้ฟอร์มจัดการเอง เพื่อแสดงข้อความที่ช่องกรอกได้ (เช่น ชื่อซ้ำ, วัตถุดิบไม่พอ)
  *
- * รูปแบบข้อมูลดูที่ data/mockData.js
+ * รูปแบบข้อมูลดูที่ Backend/app/models.py (เมธอด to_json ของแต่ละตาราง)
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api.js'
+import { refreshNotifications } from '../hooks/useNotifications.js'
 import { notify } from '../utils/dialogs.js'
 import { InventoryContext } from './InventoryContext.js'
 
@@ -63,12 +64,16 @@ export function InventoryProvider({ children }) {
     setAttempt((n) => n + 1)
   }
 
+  /** โหลดข้อมูลคลังใหม่จาก Backend (ใช้หลังปิดร้าน ที่ Backend ปรับ stock หลายตัวพร้อมกัน) — ไม่ล้างหน้าจอระหว่างโหลด */
+  const reload = useCallback(() => setAttempt((n) => n + 1), [])
+
   // ---------- action แบบแก้ไขทันที (จัดการ error เอง) ----------
 
   // ห่อการทำงาน: สำเร็จคืน true / ล้มเหลวแสดงกล่องแจ้งเตือนแล้วคืน null
   const guard = useCallback(async (work) => {
     try {
       await work()
+      refreshNotifications() // งานสำเร็จ — Backend อาจสร้างแจ้งเตือนใหม่ (เช่น วัตถุดิบใกล้หมด) ให้กระดิ่งโหลดทันที
       return true
     } catch (err) {
       notify({ icon: 'error', title: 'ทำรายการไม่สำเร็จ', text: err.message })
@@ -140,6 +145,7 @@ export function InventoryProvider({ children }) {
   const createOrder = useCallback(async (fields) => {
     const { order, ingredients, movements } = await api.orders.create(fields)
     setData((prev) => ({ ...applyStockChanges(prev, ingredients, movements), orders: [order, ...prev.orders] }))
+    refreshNotifications() // ออเดอร์ใหม่ (และ stock ที่ถูกตัด) อาจสร้างแจ้งเตือน
     return order.number
   }, [])
 
@@ -171,6 +177,7 @@ export function InventoryProvider({ children }) {
       movements: data?.movements ?? [],
       menus: data?.menus ?? [],
       orders: data?.orders ?? [],
+      reload,
       adjustQuantity,
       addIngredient,
       updateIngredient,
@@ -180,7 +187,7 @@ export function InventoryProvider({ children }) {
       advanceOrder,
       cancelOrder,
     }),
-    [data, adjustQuantity, addIngredient, updateIngredient, addMenu, updateMenu, createOrder, advanceOrder, cancelOrder],
+    [data, reload, adjustQuantity, addIngredient, updateIngredient, addMenu, updateMenu, createOrder, advanceOrder, cancelOrder],
   )
 
   // ---------- หน้า "กำลังโหลด" / โหลดไม่สำเร็จ ----------

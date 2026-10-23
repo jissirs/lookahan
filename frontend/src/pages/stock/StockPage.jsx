@@ -13,7 +13,7 @@ import RowActions from '../../components/RowActions.jsx'
 import SearchBar from '../../components/SearchBar.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
-import { INGREDIENT_CATEGORIES } from '../../data/seed.js'
+import { INGREDIENT_CATEGORIES } from '../../data/options.js'
 import { STATUS_LABEL, getStockStatus, stepFor } from '../../utils/stockStatus.js'
 
 // ตัวเลือกของ dropdown ตัวกรอง: [{ value, label }]

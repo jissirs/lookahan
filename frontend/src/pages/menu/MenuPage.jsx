@@ -11,7 +11,7 @@ import PageShell from '../../components/PageShell.jsx'
 import SearchBar from '../../components/SearchBar.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
-import { MENU_CATEGORIES } from '../../data/seed.js'
+import { MENU_CATEGORIES } from '../../data/options.js'
 import { MENU_STATUS_LABEL, getMenuStatus } from '../../utils/menuStatus.js'
 import './menu.css'
 

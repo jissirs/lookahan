@@ -109,8 +109,12 @@ function StatisticsPage() {
   // แถบความยาวของ "วัตถุดิบที่ใช้บ่อย" เทียบกับอันดับ 1 (อันดับ 1 = เต็มแถบ 100%)
   const maxMenuCount = topUsed[0]?.menuCount ?? 1
 
-  // ออเดอร์พรุ่งนี้เทียบวันนี้ เช่น +13.6% (ยังโหลดไม่เสร็จ = null)
-  const growth = dashboard ? percentChange(dashboard.statistics.orders, dashboard.forecast.orders) : null
+  // ผลพยากรณ์ของ AI (null = ยังไม่เคยสั่งให้ AI วิเคราะห์ ที่หน้า Ai)
+  const forecast = dashboard?.forecast ?? null
+
+  // ออเดอร์พรุ่งนี้เทียบวันนี้ เช่น +13.6% (ยังโหลดไม่เสร็จ หรือยังไม่มีผลพยากรณ์ = null)
+  const growth = dashboard && forecast ? percentChange(dashboard.statistics.orders, forecast.orders) : null
+  const revenueGrowth = dashboard && forecast?.revenue != null ? percentChange(dashboard.statistics.revenue, forecast.revenue) : null
 
   return (
     <PageShell>
@@ -259,7 +263,7 @@ function StatisticsPage() {
               <div className="stats-compare-row">
                 <dt>ออเดอร์</dt>
                 <dd>
-                  {dashboard?.statistics.orders ?? PLACEHOLDER} → <strong>{dashboard?.forecast.orders ?? PLACEHOLDER}</strong>
+                  {dashboard?.statistics.orders ?? PLACEHOLDER} → <strong>{forecast?.orders ?? PLACEHOLDER}</strong>
                   {growth !== null && (
                     <span className={`stats-growth ${growth >= 0 ? 'is-up' : 'is-down'}`}>
                       {growth >= 0 ? '▲' : '▼'} {Math.abs(growth)}%
@@ -268,16 +272,29 @@ function StatisticsPage() {
                 </dd>
               </div>
               <div className="stats-compare-row">
-                <dt>รายได้วันนี้</dt>
-                <dd>{dashboard ? `฿${dashboard.statistics.revenue.toLocaleString('en-US')}` : PLACEHOLDER}</dd>
+                <dt>{forecast?.revenue != null ? 'รายได้' : 'รายได้วันนี้'}</dt>
+                <dd>
+                  {dashboard ? `฿${dashboard.statistics.revenue.toLocaleString('en-US')}` : PLACEHOLDER}
+                  {forecast?.revenue != null && (
+                    <>
+                      {' '}
+                      → <strong>฿{forecast.revenue.toLocaleString('en-US')}</strong>
+                      {revenueGrowth !== null && (
+                        <span className={`stats-growth ${revenueGrowth >= 0 ? 'is-up' : 'is-down'}`}>
+                          {revenueGrowth >= 0 ? '▲' : '▼'} {Math.abs(revenueGrowth)}%
+                        </span>
+                      )}
+                    </>
+                  )}
+                </dd>
               </div>
               <div className="stats-compare-row">
                 <dt>ช่วงลูกค้าเยอะสุด</dt>
-                <dd>{dashboard ? `${dashboard.forecast.peakStart} - ${dashboard.forecast.peakEnd}` : PLACEHOLDER}</dd>
+                <dd>{forecast ? `${forecast.peakStart} - ${forecast.peakEnd}` : PLACEHOLDER}</dd>
               </div>
               <div className="stats-compare-row">
                 <dt>ขายดีที่สุด</dt>
-                <dd>{dashboard?.forecast.bestSeller ?? PLACEHOLDER}</dd>
+                <dd>{forecast?.bestSeller ?? PLACEHOLDER}</dd>
               </div>
             </dl>
           </section>

@@ -16,15 +16,6 @@
   margin-bottom: 24px;
 }
 
-/* ป้าย "โหมดจำลอง" */
-.ai-badge {
-  padding: 3px 14px;
-  border: 1px dashed #b4b4b8;
-  border-radius: 999px;
-  color: #52514e;
-  font-size: 14px;
-}
-
 .ai-heading {
   margin-bottom: 14px !important;
   font-size: 22px;
@@ -266,5 +257,122 @@
 
   .ai-hero-body {
     width: 100%;
+  }
+}
+
+/* ข้อความเวลาที่ AI วิเคราะห์ล่าสุด ข้างปุ่ม */
+.ai-generated {
+  color: #6b766f;
+  font-size: 14px;
+}
+
+/* ---------- กราฟรายได้รายวัน: เว้นระยะจากกราฟอื่น ---------- */
+.ai-chart-block {
+  margin-bottom: 20px;
+}
+
+/* ---------- AI เตือน ---------- */
+.ai-alerts {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-alert {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-left: 6px solid #fab219;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+}
+
+.ai-alert--danger { border-left-color: #d03b3b; }
+
+.ai-alert-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fab219;
+}
+
+.ai-alert--danger .ai-alert-dot { background: #d03b3b; }
+
+.ai-alert-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.ai-alert-text {
+  margin: 2px 0 0;
+  color: #4b5563;
+  font-size: 0.95em;
+}
+
+.ai-alert-detail {
+  color: #6b766f;
+}
+
+/* ---------- สถานะวัตถุดิบ ---------- */
+.ai-inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-inventory li {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #c8d1da;
+}
+
+.ai-inventory strong {
+  font-size: 1.25em;
+}
+
+.ai-inventory-normal { background: #dff5d0 !important; }
+.ai-inventory-low { background: #fff4cc !important; }
+.ai-inventory-critical { background: #fde8e8 !important; }
+
+/* ---------- ความสดของวัตถุดิบ (ค้างคืนน้อย = ดี) ---------- */
+.ai-fresh-score {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0 16px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: #fff4cc;
+}
+
+.ai-fresh-score strong {
+  flex: none;
+  font-size: 1.8em;
+}
+
+.ai-fresh-score.is-good { background: #dff5d0; }
+.ai-fresh-score.is-bad { background: #fde8e8; }
+
+@media (max-width: 600px) {
+  .ai-alert {
+    grid-template-columns: auto 1fr;
+  }
+
+  .ai-alert .ai-link {
+    grid-column: 2;
+  }
+
+  .ai-fresh-score {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }

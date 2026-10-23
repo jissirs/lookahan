@@ -1,7 +1,8 @@
 /**
  * แถบด้านบนที่ใช้ทุกหน้า (ติดบนสุดตลอดตอนเลื่อนหน้า) มี 3 ส่วน:
  *   1) โลโก้        → กดเปิดเมนูนำทาง (Navbar)
- *   2) กระดิ่ง       → กดเปิดรายการแจ้งเตือน พร้อมป้ายตัวเลขสีแดง
+ *   2) กระดิ่ง       → รายการแจ้งเตือนจาก Backend (วัตถุดิบใกล้หมด, ออเดอร์ใหม่ ฯลฯ) ป้ายแดง = จำนวนที่ยังไม่อ่าน
+ *                      กดที่แจ้งเตือน = ทำเครื่องหมายอ่านแล้ว + ไปหน้าที่เกี่ยวข้อง (ดู hooks/useNotifications.js)
  *   3) ชื่อผู้ใช้    → กดเปิดเมนู Sign out
  *
  * เมนูทั้ง 3 เปิดได้ "ทีละอัน" ควบคุมด้วย state เดียว (openMenu)
@@ -9,9 +10,8 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.js'
-import { useInventory } from '../context/InventoryContext.js'
 import { useDismiss } from '../hooks/useDismiss.js'
-import { buildStockNotifications } from '../utils/stockStatus.js'
+import { timeAgo, useNotifications } from '../hooks/useNotifications.js'
 import logo from '../assets/logo.png'
 import bell from '../assets/bell.png'
 import './Header.css'
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { label: 'Stock', to: '/stock' },
   { label: 'Menu', to: '/menu' },
   { label: 'Order', to: '/order' },
+  { label: 'Closing', to: '/closing' },
   { label: 'Statistics', to: '/statistics' },
   { label: 'Ai', to: '/ai' },
 ]
@@ -32,10 +33,8 @@ function Header() {
 
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { ingredients } = useInventory()
-
-  // แจ้งเตือนสร้างจากวัตถุดิบที่ Low / Critical ใน stock จริง
-  const notifications = buildStockNotifications(ingredients)
+  const { items: notifications, unread, markRead, markAllRead } = useNotifications()
+  const badgeText = unread > 99 ? '99+' : String(unread)
 
   // ล็อกอินแล้วแสดงชื่อ ยังไม่ล็อกอินแสดง Guest
   const displayName = user?.name || user?.username || 'Guest'
@@ -45,6 +44,13 @@ function Header() {
 
   // กดปุ่มเดิมซ้ำ = ปิด, กดปุ่มอื่น = สลับไปเปิดอันนั้นแทน
   const toggle = (name) => setOpenMenu((prev) => (prev === name ? null : name))
+
+  // กดที่แจ้งเตือน: ทำเครื่องหมายอ่านแล้ว → ปิดแผง → ไปหน้าที่เกี่ยวข้อง (ถ้ามี)
+  const handleOpenNotification = (n) => {
+    markRead(n.id)
+    setOpenMenu(null)
+    if (n.link) navigate(n.link)
+  }
 
   const handleSignOut = () => {
     setOpenMenu(null)
@@ -84,35 +90,39 @@ function Header() {
           type="button"
           className="app-header-bell"
           onClick={() => toggle('bell')}
-          aria-label={`Notifications (${notifications.length})`}
+          aria-label={`Notifications (${unread} unread)`}
           aria-haspopup="true"
           aria-expanded={openMenu === 'bell'}
         >
           <img src={bell} alt="" />
-          {/* ป้ายตัวเลขแสดงเฉพาะเมื่อมีแจ้งเตือน */}
-          {notifications.length > 0 && <span className="app-header-badge">{notifications.length}</span>}
+          {/* ป้ายตัวเลขแสดงเฉพาะเมื่อมีแจ้งเตือนที่ยังไม่อ่าน */}
+          {unread > 0 && <span className="app-header-badge">{badgeText}</span>}
         </button>
 
         {openMenu === 'bell' && (
           <div className="app-header-panel app-header-panel--bell" role="dialog" aria-label="Notifications">
-            <p className="app-header-panel-title">Notifications</p>
+            <div className="app-header-panel-head">
+              <p className="app-header-panel-title">Notifications</p>
+              <button type="button" className="app-header-readall" onClick={markAllRead} disabled={unread === 0}>
+                Mark all as read
+              </button>
+            </div>
 
             {notifications.length === 0 ? (
               <p className="app-header-empty">No notifications</p>
             ) : (
               <ul className="app-header-notifications">
                 {notifications.map((n) => (
-                  <li key={n.id} className="app-header-notification">
-                    {/* จุดสีบอกระดับ: danger = แดง, warn = เหลือง, info = น้ำเงิน */}
-                    <span className={`app-header-dot app-header-dot--${n.level || 'info'}`} />
-                    {n.to ? (
-                      // แจ้งเตือนที่มีปลายทาง → กดแล้วไปหน้านั้นและปิดแผง
-                      <Link className="app-header-notification-link" to={n.to} onClick={() => setOpenMenu(null)}>
-                        {n.text}
-                      </Link>
-                    ) : (
-                      n.text
-                    )}
+                  <li key={n.id} className={`app-header-notification${n.read ? '' : ' is-unread'}`}>
+                    <button type="button" className="app-header-notification-btn" onClick={() => handleOpenNotification(n)}>
+                      {/* จุดสีบอกระดับ: danger = แดง, warn = เหลือง, info = น้ำเงิน */}
+                      <span className={`app-header-dot app-header-dot--${n.level || 'info'}`} />
+                      <span className="app-header-notification-body">
+                        <span className="app-header-notification-title">{n.title}</span>
+                        {n.message && <span className="app-header-notification-text">{n.message}</span>}
+                        <span className="app-header-notification-time">{timeAgo(n.createdAt)}</span>
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>

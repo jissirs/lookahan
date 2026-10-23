@@ -3,7 +3,7 @@
  * ทุกฟังก์ชันเป็น "ฟังก์ชันล้วน" (รับข้อมูล → คืนผลลัพธ์ ไม่แก้ข้อมูลเดิม) จึงทดสอบและอ่านง่าย
  * ข้อมูลที่รับเข้ามามีรูปแบบตามที่อธิบายไว้ใน context/InventoryProvider.jsx
  */
-import { INGREDIENT_CATEGORIES } from '../data/seed.js'
+import { INGREDIENT_CATEGORIES } from '../data/options.js'
 import { getMenuStatus } from './menuStatus.js'
 import { getStockStatus } from './stockStatus.js'
 

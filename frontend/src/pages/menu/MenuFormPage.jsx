@@ -16,7 +16,7 @@ import PageShell from '../../components/PageShell.jsx'
 import PriceField from '../../components/PriceField.jsx'
 import ToggleSwitch from '../../components/ToggleSwitch.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
-import { MENU_CATEGORIES } from '../../data/seed.js'
+import { MENU_CATEGORIES } from '../../data/options.js'
 import './menu.css'
 
 // ค่าเริ่มต้นของเมนูใหม่ (ยังไม่พร้อมขาย จนกว่าจะใส่สูตรและเปิดสวิตช์)

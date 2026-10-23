@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-// จำกัดขนาด เพราะตอนนี้เก็บรูปเป็นข้อความ (data URL) ใน localStorage ซึ่งมีพื้นที่จำกัด
+// จำกัดขนาด เพราะตอนนี้เก็บรูปเป็นข้อความ (data URL) ในฐานข้อมูลของ Backend
 // TODO: เมื่อมี backend ให้อัปโหลดไฟล์ไปเก็บที่เซิร์ฟเวอร์แทน แล้วเก็บเฉพาะลิงก์รูป
 const MAX_BYTES = 1024 * 1024 // 1MB
 const ACCEPTED = ['image/jpeg', 'image/png']

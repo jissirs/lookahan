@@ -1,0 +1,9 @@
+# เวอร์ชันหลักที่ใช้ (ติดตั้ง: pip install -r requirements.txt)
+Flask>=3.0,<4
+Flask-SQLAlchemy>=3.1,<4
+Flask-Cors>=5.0
+python-dotenv>=1.0
+PyMySQL>=1.1          # ตัวเชื่อม MySQL
+cryptography>=42      # PyMySQL ต้องใช้กับการล็อกอินแบบ caching_sha2_password / SSL
+pytest>=8
+requests>=2.32

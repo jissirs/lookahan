@@ -54,19 +54,3 @@ export function estimateRequired(item, menus) {
   const minimum = (LOW_AT + 1) * scaleOf(item.unit)
   return Math.max(minimum, usagePerPortion * 3)
 }
-
-/**
- * สร้างรายการแจ้งเตือนจากวัตถุดิบที่ Low / Critical (ใช้ที่กระดิ่งใน Header)
- * @returns {{ id: string, level: 'warn' | 'danger', text: string, to: string }[]}
- */
-export function buildStockNotifications(items) {
-  return items
-    .map((item) => ({ item, status: getStockStatus(item) }))
-    .filter(({ status }) => status !== 'normal')
-    .map(({ item, status }) => ({
-      id: `stock-${item.id}`,
-      level: status === 'critical' ? 'danger' : 'warn',
-      text: `${item.name} is running low (${item.quantity} ${item.unit})`,
-      to: `/stock/${item.id}`, // กดแล้วไปหน้ารายละเอียดวัตถุดิบนั้น
-    }))
-}

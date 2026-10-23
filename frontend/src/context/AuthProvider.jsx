@@ -29,6 +29,15 @@ export function AuthProvider({ children }) {
   // มี token เก่า = ต้องรอตรวจกับเซิร์ฟเวอร์ก่อนจึงจะรู้ว่าล็อกอินอยู่จริงไหม
   const [isLoading, setIsLoading] = useState(() => Boolean(readStoredAuth()?.token))
 
+  // Backend บอกว่า token หมดอายุระหว่างใช้งาน → ออกจากระบบทันที (RequireAuth จะพากลับหน้า Login เอง)
+  useEffect(() => {
+    api.setUnauthorizedHandler(() => {
+      localStorage.removeItem(STORAGE_KEY)
+      setAuth(null)
+    })
+    return () => api.setUnauthorizedHandler(null)
+  }, [])
+
   // ตรวจ token เก่าตอนเปิดแอป (ทำครั้งเดียว)
   useEffect(() => {
     const stored = readStoredAuth()
@@ -82,7 +91,6 @@ export function AuthProvider({ children }) {
       token: auth?.token ?? null,
       isAuthenticated: Boolean(auth?.token),
       isLoading,
-      isMockApi: api.isMock, // หน้าจอใช้ตัดสินใจแสดง OTP ให้ดูตอนพัฒนา
       login,
       logout,
       register,

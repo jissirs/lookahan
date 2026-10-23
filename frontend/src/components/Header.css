@@ -373,3 +373,112 @@
     letter-spacing: normal;
   }
 }
+
+/* =====================================================================
+ * แจ้งเตือนจริง (กระดิ่ง): หัวแผง + ปุ่ม "อ่านทั้งหมด" + รายการที่ยังไม่อ่าน
+ * ===================================================================== */
+.app-header-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* หัวข้อเดิมมีเส้นใต้ของตัวเอง — ย้ายเส้นไปที่หัวแผงทั้งแถบแทน */
+.app-header-panel-head .app-header-panel-title {
+  border-bottom: 0;
+}
+
+.app-header-readall {
+  flex: none;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #eff1ca;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.app-header-readall:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.app-header-readall:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* แต่ละแจ้งเตือนเป็นปุ่มเต็มแถว (กดแล้วอ่าน + ไปหน้านั้น) */
+.app-header-notification {
+  padding: 0;
+}
+
+.app-header-notification-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-header-notification-btn:focus-visible {
+  outline: 2px solid #5f7a4a;
+  outline-offset: -2px;
+}
+
+.app-header-notification-btn .app-header-dot {
+  margin-top: 0.35em;
+}
+
+.app-header-notification-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app-header-notification-text {
+  color: #4b5563;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.app-header-notification-time {
+  color: #9ca3af;
+  font-size: 0.78em;
+}
+
+/* ยังไม่อ่าน: พื้นอ่อน + หัวข้อตัวหนา — อ่านแล้ว: จางลงนิดหน่อย */
+.app-header-notification.is-unread {
+  background: #fbf8e6;
+}
+
+.app-header-notification.is-unread .app-header-notification-title {
+  font-weight: 700;
+}
+
+.app-header-notification:not(.is-unread) .app-header-notification-btn {
+  opacity: 0.72;
+}
+
+/* จอแคบ: แผงแจ้งเตือนกว้างพอดีจอ (ไม่ล้นขอบขวา) */
+@media (max-width: 760px) {
+  .app-header-panel--bell {
+    position: fixed;
+    top: calc(120 * var(--u) + 8px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}

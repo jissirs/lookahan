@@ -7,8 +7,6 @@ import { useAuth } from '../context/AuthContext.js'
  *
  * ถ้ายังไม่ล็อกอิน จะพาไปหน้า Login พร้อมจำหน้าที่ตั้งใจจะเข้า (state.from)
  * ล็อกอินสำเร็จแล้วหน้า Login จะพากลับไปหน้านั้นเอง
- *
- * หมายเหตุ: ตอนนี้ยังไม่ได้ใช้ใน App.jsx เพราะ backend ยังไม่พร้อม (ล็อกอินจริงยังไม่ได้)
  */
 function RequireAuth({ children }) {
   const { isAuthenticated, isLoading } = useAuth()

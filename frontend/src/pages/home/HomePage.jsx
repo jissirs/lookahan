@@ -3,7 +3,7 @@
  *
  * ข้อมูลมาจากฐานข้อมูล (ผ่าน api) ทั้งหมด:
  *   - การ์ด Low stock และกระดิ่งใน Header   ← useInventory() (stock จริง)
- *   - สถิติวันนี้ และ Ai forecast            ← useDashboard() (ตอนนี้เป็นข้อมูลตัวอย่างในฐานข้อมูลจำลอง)
+ *   - สถิติวันนี้ และ Ai forecast            ← useDashboard() (สถิติจากออเดอร์จริง; ผลพยากรณ์มาจาก AI และถูกวิเคราะห์อัตโนมัติเมื่อไม่มีหรือเก่าเกิน 6 ชม.)
  * ระหว่างรอข้อมูลของการ์ดสถิติ/forecast จะแสดง "—" ไว้ก่อน
  */
 import { Link } from 'react-router-dom'
@@ -96,6 +96,15 @@ function ForecastSection({ forecast }) {
               </span>
               <span>{forecast?.bestSeller ?? PLACEHOLDER} คาดว่าจะขายดีที่สุด</span>
             </li>
+            {/* รายได้ที่ AI คาดว่าจะได้พรุ่งนี้ (ผลรุ่นเก่าที่ยังไม่มีค่านี้จะไม่แสดง) */}
+            {forecast?.revenue != null && (
+              <li>
+                <span className="home-chip">
+                  <img src={orderIcon} alt="" />
+                </span>
+                <span>รายได้พรุ่งนี้ประมาณ ฿{forecast.revenue.toLocaleString('en-US')}</span>
+              </li>
+            )}
           </ul>
         </div>
 

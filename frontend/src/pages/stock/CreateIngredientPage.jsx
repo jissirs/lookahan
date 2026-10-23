@@ -10,7 +10,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell.jsx'
 import PriceField from '../../components/PriceField.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
-import { INGREDIENT_CATEGORIES, INGREDIENT_UNITS } from '../../data/seed.js'
+import { INGREDIENT_CATEGORIES, INGREDIENT_UNITS } from '../../data/options.js'
 import './stock.css'
 
 function CreateIngredientPage() {

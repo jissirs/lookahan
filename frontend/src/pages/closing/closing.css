@@ -1,0 +1,86 @@
+/* หน้า Closing (/closing) — ใช้สีจากธีมเดิมของแอป */
+.closing-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 4px 40px;
+}
+
+.closing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.closing-heading {
+  margin: 0;
+  font-size: 22px;
+}
+
+.closing-note {
+  margin: 0;
+  color: #6b5a4b;
+  font-size: 15px;
+}
+
+.closing-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ตารางกว้างเกินจอเล็ก → เลื่อนดูในกรอบตาราง ไม่ให้ทั้งหน้าเลื่อนข้าง */
+.closing-table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.closing-table th,
+.closing-table td {
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #eee3d6;
+}
+
+.closing-table tr.is-bad td {
+  background: #fde8e8;
+}
+
+.closing-input {
+  width: 96px;
+  padding: 6px 8px;
+  font: inherit;
+  border: 1px solid #c9b8a4;
+  border-radius: 8px;
+}
+
+.closing-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.closing-note-field input {
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid #c9b8a4;
+  border-radius: 8px;
+}
+
+.closing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.closing-preview {
+  font-weight: 600;
+}
