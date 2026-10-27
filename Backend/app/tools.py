@@ -36,6 +36,8 @@ STATUS_BY_CODE = {
     'INVALID_RESET_TOKEN': 400,
     'INVALID_CREDENTIALS': 401,
     'UNAUTHORIZED': 401,
+    'FORBIDDEN': 403,
+    'PENDING_APPROVAL': 403,
     'NOT_FOUND': 404,
     'EMAIL_NOT_FOUND': 404,
     'EMAIL_TAKEN': 409,
@@ -89,6 +91,13 @@ def json_body():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise ApiError('VALIDATION', 'Request body must be a JSON object')
+    for key in ('name', 'surname', 'email', 'password', 'identifier', 'newPassword', 'otp', 'resetToken',
+                'category', 'unit', 'note', 'details', 'image', 'label', 'tableLabel', 'serviceType'):
+        if key in data and not isinstance(data[key], str):
+            raise ApiError('VALIDATION', key + ' must be text')
+        maximum = {'name': 80, 'surname': 80, 'email': 190, 'password': 128, 'newPassword': 128, 'image': 1400000}.get(key, 2000)
+        if isinstance(data.get(key), str) and len(data[key]) > maximum:
+            raise ApiError('VALIDATION', key + ' is too long')
     return data
 
 
@@ -127,7 +136,7 @@ def is_whole_number(value):
 def get_password_error(password):
     """กฎรหัสผ่านที่ยอมรับได้ (ต้องตรงกับ frontend/src/utils/passwordRules.js)
     คืนข้อความ error หรือ '' ถ้าผ่าน"""
-    if not password:
+    if not isinstance(password, str) or not password:
         return 'Please enter a password'
     if len(password) < 8:
         return 'Password must be at least 8 characters'
@@ -203,9 +212,19 @@ def check_login():
             db.session.commit()
         raise ApiError('UNAUTHORIZED', 'Session expired')
 
+    from datetime import timedelta
+    if session.last_seen_at is None or session.last_seen_at < now() - timedelta(minutes=5):
+        session.last_seen_at = now()
+        db.session.commit()
     g.user = session.user
     g.branch_id = session.user.branch_id  # ข้อมูลทุกอย่างถูกจำกัดอยู่ในสาขาของผู้ใช้
     g.token_hash = session.token_hash
+    if not g.user.approved:
+        raise ApiError('PENDING_APPROVAL', 'บัญชียังไม่ได้รับอนุมัติจากเจ้าของร้าน')
+    if g.user.role != 'owner':
+        management = request.path.startswith(('/api/v1/ingredients', '/api/v1/menus', '/api/v1/closing', '/api/v1/ai/forecast'))
+        if request.method not in ('GET', 'OPTIONS') and management:
+            raise ApiError('FORBIDDEN', 'เฉพาะเจ้าของร้านที่จัดการสต๊อก สูตร และปิดร้านได้')
 
 
 # =====================================================================

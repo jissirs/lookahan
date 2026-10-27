@@ -23,7 +23,7 @@ import './HomePage.css'
 // ข้อความแทนค่าที่ยังโหลดไม่เสร็จ
 const PLACEHOLDER = '—'
 
-// การ์ดทางลัด 3 ใบด้านบน (เป็นเมนูนำทาง ไม่ใช่ข้อมูลจากฐานข้อมูล)
+// ทางลัดไปหน้าหลัก พร้อมตัวเลขสรุปจากข้อมูลจริง
 const SHORTCUTS = [
   { key: 'stock', title: 'Stock', heading: 'วัตถุดิบ', unit: 'รายการ', button: 'ดู Stock', to: '/stock' },
   { key: 'order', title: 'Order', heading: 'ออเดอร์วันนี้', unit: 'รายการ', button: 'ดู Order', to: '/order' },
@@ -33,27 +33,57 @@ const SHORTCUTS = [
 // ---------- การแปลงสถานะ stock → สี/ข้อความของการ์ด Low stock ----------
 
 // สถานะจาก utils → ชื่อคลาสสี (ok = เขียว, warn = เหลือง, danger = แดง) ที่ใช้ใน HomePage.css
-const LEVEL_OF = { normal: 'ok', low: 'warn', critical: 'danger' }
-const LEVEL_LABEL = { ok: 'ปกติ', warn: 'ใกล้หมด', danger: 'วิกฤต' }
+const LEVEL_OF = { normal: 'ok', low: 'warn', critical: 'danger', out_of_stock: 'empty' }
+const LEVEL_LABEL = { ok: 'ปกติ', warn: 'ใกล้หมด', danger: 'วิกฤต', empty: 'หมด' }
 
 // ลำดับความเร่งด่วน: ค่าน้อย = ต้องเติมก่อน (ใช้เรียงในการ์ด Low stock)
-const URGENCY = { critical: 0, low: 1, normal: 2 }
+const URGENCY = { out_of_stock: 0, critical: 1, low: 2, normal: 3 }
 
 // ---------- ส่วนย่อยของหน้า ----------
 
 /** แถวทางลัด 3 การ์ด: Stock / Order / Menu */
-function ShortcutCards() {
+function ShortcutCards({ statistics }) {
+  const { ingredients, menus, orders } = useInventory()
+  const needRestock = ingredients.filter((item) => getStockStatus(item) !== 'normal').length
+  const activeOrders = orders.filter((order) => !['done', 'cancelled'].includes(order.status)).length
+  const values = {
+    stock: ingredients.length.toLocaleString('th-TH'),
+    order: statistics?.orders?.toLocaleString('th-TH') ?? PLACEHOLDER,
+    menu: menus.length.toLocaleString('th-TH'),
+  }
+  const details = {
+    stock: needRestock ? `ต้องเติม ${needRestock.toLocaleString('th-TH')} รายการ` : 'วัตถุดิบทุกรายการอยู่ในเกณฑ์ปกติ',
+    order: `กำลังดำเนินการ ${activeOrders.toLocaleString('th-TH')} รายการ`,
+    menu: `เปิดขาย ${menus.filter((menu) => menu.available).length.toLocaleString('th-TH')} เมนู`,
+  }
+  if (ingredients.length === 0) details.stock = 'เริ่มเพิ่มวัตถุดิบเพื่อจัดการคลัง'
+
   return (
     <section className="home-shortcuts" aria-label="Shortcuts">
       {SHORTCUTS.map(({ key, title, heading, unit, button, to }) => (
-        <article key={key} className={`home-shortcut home-shortcut--${key}`}>
-          <h2 className="home-shortcut-title">{title}</h2>
-          <p className="home-shortcut-heading">{heading}</p>
-          <p className="home-shortcut-unit">{unit}</p>
-          <Link className="home-shortcut-button" to={to}>
-            {button}
-          </Link>
-        </article>
+        <Link key={key} className={`home-shortcut home-shortcut--${key}`} to={to} aria-label={`${button}: ${heading} ${values[key]} ${unit}, ${details[key]}`}>
+          <div className="home-shortcut-top">
+            <span className="home-shortcut-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                {key === 'stock' && <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 8 9 5 9-5M3 8v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5" /></>}
+                {key === 'order' && <><rect x="5" y="4" width="14" height="17" rx="2" /><rect x="9" y="2" width="6" height="4" rx="1" /><path d="M9 11h6M9 15h6M9 18h3" /></>}
+                {key === 'menu' && <><path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 21V3c-3 2-4 5-4 9h4" /></>}
+              </svg>
+            </span>
+            <div>
+              <h2 className="home-shortcut-title">{title}</h2>
+              <p className="home-shortcut-heading">{heading}</p>
+            </div>
+          </div>
+          <p className="home-shortcut-metric">
+            <strong>{values[key]}</strong>
+            <span>{unit}</span>
+          </p>
+          <p className={`home-shortcut-detail${key === 'stock' && needRestock ? ' home-shortcut-detail--warning' : ''}`}>{details[key]}</p>
+          <span className="home-shortcut-button">
+            {button}<span className="home-shortcut-arrow" aria-hidden="true">→</span>
+          </span>
+        </Link>
       ))}
     </section>
   )
@@ -119,7 +149,7 @@ function ForecastSection({ forecast }) {
 function LowStockCard() {
   const { ingredients } = useInventory()
 
-  // ใส่สถานะให้แต่ละรายการ → เรียงตามความเร่งด่วน (Critical ก่อน Low ก่อน Normal)
+  // เรียงความเร่งด่วน: Out of stock → Critical → Low → Normal
   // ถ้าความเร่งด่วนเท่ากัน เรียงจากจำนวนน้อยไปมาก → เอา 3 อันแรก
   const lowest = ingredients
     .map((item) => ({ ...item, status: getStockStatus(item) }))
@@ -128,7 +158,7 @@ function LowStockCard() {
     .map((item) => ({ ...item, level: LEVEL_OF[item.status] }))
 
   // ป้ายสรุปนับเฉพาะที่ต้องเติมจริง (ไม่นับสถานะปกติ)
-  const needRestock = lowest.filter((item) => item.level !== 'ok').length
+  const needRestock = ingredients.filter((item) => getStockStatus(item) !== 'normal').length
 
   return (
     <article className="home-card">
@@ -208,7 +238,7 @@ function HomePage() {
           <LiveDateTime />
         </div>
 
-        <ShortcutCards />
+        <ShortcutCards statistics={dashboard?.statistics} />
         <ForecastSection forecast={dashboard?.forecast} />
 
         <section className="home-summary" aria-label="Summary">

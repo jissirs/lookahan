@@ -33,7 +33,7 @@ bp = Blueprint('ai', __name__)
 @bp.post('/ai/forecast')
 def create_forecast():
     history = collect_history()
-    answer = ask_groq(FORECAST_SYSTEM_PROMPT, 'ข้อมูลร้านของฉัน (JSON):\n' + json.dumps(history, ensure_ascii=False))
+    answer = ask_groq(FORECAST_SYSTEM_PROMPT, 'ข้อมูลร้านของฉัน (JSON):\n' + json.dumps(history, ensure_ascii=False, default=float))
     payload = clean_forecast(answer, history)
 
     # บันทึกทับผลเก่า (สาขาละ 1 แถว) — หน้า Dashboard จะเห็นผลใหม่ทันที
@@ -164,5 +164,5 @@ def ask_groq(system_prompt, user_prompt):
 
     try:
         return json.loads(response.json()['choices'][0]['message']['content'])
-    except (KeyError, IndexError, ValueError):
+    except (KeyError, IndexError, TypeError, ValueError):
         raise ApiError('AI_ERROR', 'Groq ตอบกลับในรูปแบบที่อ่านไม่ได้')

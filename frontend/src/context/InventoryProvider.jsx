@@ -15,11 +15,13 @@
  *
  * รูปแบบข้อมูลดูที่ Backend/app/models.py (เมธอด to_json ของแต่ละตาราง)
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../services/api.js'
 import { refreshNotifications } from '../hooks/useNotifications.js'
 import { notify } from '../utils/dialogs.js'
 import { InventoryContext } from './InventoryContext.js'
+import { useAuth } from './AuthContext.js'
+import { readSnapshot, saveSnapshot } from '../utils/offlineStore.js'
 
 // แทนที่รายการที่ id ตรงกันด้วยตัวใหม่ (ไม่เจอก็ไม่ทำอะไร)
 const replaceById = (list, updated) => list.map((item) => (item.id === updated.id ? updated : item))
@@ -34,6 +36,9 @@ function applyStockChanges(state, changedIngredients, newMovements) {
 }
 
 export function InventoryProvider({ children }) {
+  const { user } = useAuth()
+  const [staleAt, setStaleAt] = useState(null)
+  const snapshotTime = useRef(null)
   // data = { ingredients, movements, menus, orders } | null (null = ยังโหลดไม่เสร็จ)
   const [data, setData] = useState(null)
   const [loadError, setLoadError] = useState('')
@@ -48,16 +53,25 @@ export function InventoryProvider({ children }) {
     api.inventory
       .getSnapshot()
       .then((snapshot) => {
-        if (!cancelled) setData(snapshot)
+        if (!cancelled) { setData(snapshot); setStaleAt(null) }
       })
-      .catch((err) => {
-        if (!cancelled) setLoadError(err.message || 'โหลดข้อมูลไม่สำเร็จ')
+      .catch(async (err) => {
+        const cached = ['NETWORK', 'SERVER_ERROR'].includes(err.code) ? await readSnapshot(user.id).catch(() => null) : null
+        if (!cancelled && cached) { snapshotTime.current = cached.savedAt; setData(cached.data); setStaleAt(cached.savedAt) }
+        else if (!cancelled) setLoadError(err.message || 'โหลดข้อมูลไม่สำเร็จ')
       })
 
     return () => {
       cancelled = true
     }
-  }, [attempt])
+  }, [attempt, user.id])
+
+  useEffect(() => {
+    if (data && !staleAt) {
+      snapshotTime.current = new Date().toISOString()
+      saveSnapshot(user.id, data).catch(() => {})
+    }
+  }, [data, staleAt, user.id])
 
   const retry = () => {
     setLoadError('')
@@ -65,7 +79,36 @@ export function InventoryProvider({ children }) {
   }
 
   /** โหลดข้อมูลคลังใหม่จาก Backend (ใช้หลังปิดร้าน ที่ Backend ปรับ stock หลายตัวพร้อมกัน) — ไม่ล้างหน้าจอระหว่างโหลด */
-  const reload = useCallback(() => setAttempt((n) => n + 1), [])
+  const reload = useCallback(async () => {
+    const snapshot = await api.inventory.getSnapshot()
+    setData(snapshot)
+    setStaleAt(null)
+  }, [])
+
+  useEffect(() => {
+    let stopped = false
+    let loading = false
+    const refresh = async () => {
+      if (stopped || loading || document.visibilityState === 'hidden') return
+      loading = true
+      try {
+        const snapshot = await api.inventory.getSnapshot()
+        if (!stopped) { setData(snapshot); setStaleAt(null) }
+      } catch { if (!stopped) setStaleAt(previous => previous || snapshotTime.current || new Date().toISOString()) }
+      finally { loading = false }
+    }
+    const timer = setInterval(refresh, 60000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('online', refresh)
+    window.addEventListener('offline', refresh)
+    return () => {
+      stopped = true
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('online', refresh)
+      window.removeEventListener('offline', refresh)
+    }
+  }, [user.id])
 
   // ---------- action แบบแก้ไขทันที (จัดการ error เอง) ----------
 
@@ -108,6 +151,16 @@ export function InventoryProvider({ children }) {
     [guard],
   )
 
+  const deleteIngredient = useCallback((id) => guard(async () => {
+    await api.inventory.deleteIngredient(id)
+    setData((prev) => ({ ...prev, ingredients: prev.ingredients.filter((item) => item.id !== id) }))
+  }), [guard])
+
+  const restoreIngredient = useCallback((id) => guard(async () => {
+    const item = await api.inventory.restoreIngredient(id)
+    setData((prev) => ({ ...prev, ingredients: [...prev.ingredients.filter((row) => row.id !== item.id), item] }))
+  }), [guard])
+
   /** แก้ข้อมูลเมนูบางฟิลด์ (รวมถึง recipe ทั้งก้อน) */
   const updateMenu = useCallback(
     (id, patch) =>
@@ -144,12 +197,22 @@ export function InventoryProvider({ children }) {
    */
   const createOrder = useCallback(async (fields) => {
     const { order, ingredients, movements } = await api.orders.create(fields)
-    setData((prev) => ({ ...applyStockChanges(prev, ingredients, movements), orders: [order, ...prev.orders] }))
+    setData((prev) => ({ ...applyStockChanges(prev, ingredients, movements), orders: [order, ...prev.orders.filter(x => x.id !== order.id)] }))
     refreshNotifications() // ออเดอร์ใหม่ (และ stock ที่ถูกตัด) อาจสร้างแจ้งเตือน
     return order.number
   }, [])
 
   /** เลื่อนออเดอร์ไปสถานะถัดไป (รอรับ → กำลังทำ → พร้อมเสิร์ฟ → เสร็จสิ้น) */
+  const recordPayment = useCallback(async (id, fields) => {
+    const order = await api.orders.pay(id, fields)
+    setData(prev => ({ ...prev, orders: replaceById(prev.orders, order) }))
+    return order
+  }, [])
+  const editOrder = useCallback(async (id, fields) => {
+    const result = await api.pos.order(id, 'edit', fields)
+    await reload()
+    return result.order.number
+  }, [reload])
   const advanceOrder = useCallback(
     (id) =>
       guard(async () => {
@@ -161,9 +224,9 @@ export function InventoryProvider({ children }) {
 
   /** ยกเลิกออเดอร์ — api คืน stock ที่เคยตัดไปให้ */
   const cancelOrder = useCallback(
-    (id) =>
+    (id, reason) =>
       guard(async () => {
-        const { order, ingredients, movements } = await api.orders.cancel(id)
+        const { order, ingredients, movements } = await api.orders.cancel(id, reason)
         setData((prev) => ({ ...applyStockChanges(prev, ingredients, movements), orders: replaceById(prev.orders, order) }))
       }),
     [guard],
@@ -177,17 +240,22 @@ export function InventoryProvider({ children }) {
       movements: data?.movements ?? [],
       menus: data?.menus ?? [],
       orders: data?.orders ?? [],
+      staleAt,
       reload,
       adjustQuantity,
       addIngredient,
       updateIngredient,
+      deleteIngredient,
+      restoreIngredient,
       addMenu,
       updateMenu,
       createOrder,
+      recordPayment,
+      editOrder,
       advanceOrder,
       cancelOrder,
     }),
-    [data, reload, adjustQuantity, addIngredient, updateIngredient, addMenu, updateMenu, createOrder, advanceOrder, cancelOrder],
+    [data, staleAt, reload, adjustQuantity, addIngredient, updateIngredient, deleteIngredient, restoreIngredient, addMenu, updateMenu, createOrder, recordPayment, editOrder, advanceOrder, cancelOrder],
   )
 
   // ---------- หน้า "กำลังโหลด" / โหลดไม่สำเร็จ ----------

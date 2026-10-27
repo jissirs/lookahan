@@ -59,16 +59,18 @@ def add_notification_once(kind, level, title, message='', link='', hours=24):
 
 
 def notify_stock_change(ingredient, old_quantity):
-    """เรียกหลังเปลี่ยนจำนวนวัตถุดิบ: ถ้าสถานะ "แย่ลง" (ปกติ→ใกล้หมด, ใกล้หมด→วิกฤต) ให้สร้างแจ้งเตือน
+    """เรียกหลังเปลี่ยนจำนวนวัตถุดิบ: ถ้าสถานะ "แย่ลง" (ปกติ→ใกล้หมด→วิกฤต→หมด) ให้สร้างแจ้งเตือน
     (แจ้งเฉพาะตอนข้ามเกณฑ์ ไม่แจ้งซ้ำทุกครั้งที่ลดของที่ใกล้หมดอยู่แล้ว)"""
     before = stock_status(old_quantity, ingredient.unit)
-    after = stock_status(ingredient.quantity, ingredient.unit)
+    after = stock_status(ingredient.usable_quantity, ingredient.unit)
     if STATUS_RANK[after] <= STATUS_RANK[before]:
         return
 
-    detail = '%s เหลือ %s %s' % (ingredient.name, ingredient.quantity, ingredient.unit)
+    detail = '%s เหลือใช้ได้ %s %s' % (ingredient.name, ingredient.usable_quantity, ingredient.unit)
     link = '/stock/%s' % ingredient.id
-    if after == 'critical':
+    if after == 'out_of_stock':
+        add_notification('stock_critical', 'danger', 'วัตถุดิบหมด: ' + ingredient.name, detail + ' — ต้องเติมก่อนใช้งาน', link)
+    elif after == 'critical':
         add_notification('stock_critical', 'danger', 'วัตถุดิบวิกฤต: ' + ingredient.name, detail + ' — ควรเติมด่วน', link)
     else:
         add_notification('stock_low', 'warn', 'วัตถุดิบใกล้หมด: ' + ingredient.name, detail, link)

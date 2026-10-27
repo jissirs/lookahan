@@ -13,7 +13,9 @@ from flask import Blueprint, jsonify
 from sqlalchemy import text
 
 from .. import db
-from . import ai, auth, closing, notifications, orders, stock
+from . import ai, auth, closing, notifications, orders, stock, planning
+from .. import restaurant
+from .. import pos, purchasing, staff_sessions, service_reports
 
 API_PREFIX = '/api/v1'
 
@@ -32,6 +34,6 @@ def health():
 
 
 def register_routes(app):
-    for module in (auth, stock, orders, notifications, ai, closing):
+    for module in (auth, stock, orders, notifications, ai, closing, planning, restaurant, pos, purchasing, staff_sessions, service_reports):
         app.register_blueprint(module.bp, url_prefix=API_PREFIX)
     app.register_blueprint(health_bp, url_prefix=API_PREFIX)

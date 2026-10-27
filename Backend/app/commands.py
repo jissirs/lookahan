@@ -40,6 +40,28 @@ MAIL_HINTS = [
 
 
 def register_commands(app):
+    @app.cli.command('bootstrap-owner')
+    @click.option('--email', prompt=True)
+    @click.option('--name', prompt=True)
+    @click.password_option()
+    def bootstrap_owner(email, name, password):
+        """Create the first owner privately; never replace existing accounts."""
+        import re
+        from .models import Branch, User
+        from .tools import get_password_error, hash_password
+        if User.query.first():
+            raise click.ClickException('มีบัญชีร้านแล้ว ไม่สามารถสร้างเจ้าของซ้ำด้วยคำสั่งนี้')
+        if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email) or len(email) > 190 or not 1 <= len(name.strip()) <= 80:
+            raise click.ClickException('ชื่อหรืออีเมลไม่ถูกต้อง')
+        error = get_password_error(password)
+        if error:
+            raise click.ClickException(error)
+        branch = Branch.query.order_by(Branch.id).first() or Branch(name='ร้านอาหาร')
+        db.session.add(User(branch=branch, name=name.strip(), surname='', email=email.strip().lower(),
+            password_hash=hash_password(password), role='owner', approved=True))
+        db.session.commit()
+        click.echo('สร้างเจ้าของร้านเรียบร้อย')
+
     @app.cli.command('check-db')
     def check_db():
         """ทดสอบการเชื่อมต่อฐานข้อมูล (อ่านอย่างเดียว)"""

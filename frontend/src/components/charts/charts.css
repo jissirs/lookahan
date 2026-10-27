@@ -22,6 +22,7 @@
   --chart-warning: #fab219;
   --chart-serious: #ec835a;
   --chart-critical: #d03b3b;
+  --chart-out-of-stock: #374151;
   --chart-neutral: #898781;
 
   padding: 22px 24px 20px;

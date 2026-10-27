@@ -21,3 +21,11 @@ venv/
 # ใบรับรอง/กุญแจ (ห้ามอัปโหลด)
 *.pem
 *.key
+
+# Local database upgrade backups
+Backend/.db-backups/
+backups/
+
+# Local QA evidence and operational reports (may contain workstation/store data)
+Backend/qa/artifacts/
+Backend/qa/*-20??-??-??.md

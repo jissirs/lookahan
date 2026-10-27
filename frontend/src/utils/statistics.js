@@ -15,17 +15,17 @@ const dayKey = (iso) => {
 
 /**
  * สรุป stock แยกตามหมวดวัตถุดิบ (เนื้อ / ผัก / ผลไม้ / อื่นๆ)
- * @returns {{ category: string, total: number, normal: number, low: number, critical: number }[]}
+ * @returns {{ category: string, total: number, normal: number, low: number, critical: number, out_of_stock: number }[]}
  *          เรียงตามหมวดใน INGREDIENT_CATEGORIES (หมวดที่ไม่มีวัตถุดิบก็ยังแสดง total = 0)
  */
 export function summarizeByCategory(ingredients) {
   return INGREDIENT_CATEGORIES.map((category) => {
-    const summary = { category, total: 0, normal: 0, low: 0, critical: 0 }
+    const summary = { category, total: 0, normal: 0, low: 0, critical: 0, out_of_stock: 0 }
 
     for (const item of ingredients) {
       if (item.category !== category) continue
       summary.total += 1
-      summary[getStockStatus(item)] += 1 // นับเข้าช่อง normal / low / critical ตามสถานะ
+      summary[getStockStatus(item)] += 1 // นับแยกทั้ง 4 สถานะ
     }
 
     return summary

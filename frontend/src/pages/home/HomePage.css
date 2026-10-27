@@ -57,94 +57,124 @@
   margin-top: 40px;
 }
 
-/* ---------- Shortcuts (คงธีมต้นฉบับ: พื้นเทาน้ำเงิน ปุ่มสีครีม หัวข้อสีตามประเภท) ---------- */
+/* ---------- ทางลัดพร้อมข้อมูลสรุป ---------- */
 .home-shortcuts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .home-shortcut {
-  --accent: #5b3a2e;
-  position: relative;
+  --accent: #74523e;
+  --accent-soft: #f3ebe2;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-height: 290px;
-  padding: 22px 28px 30px;
-  border-radius: 28px;
-  background: linear-gradient(180deg, #d1d9e1 0%, #c8d1da 55%, #c2ccd6 100%);
-  box-shadow: 0 1px 2px rgba(40, 55, 75, 0.08), 0 10px 24px rgba(40, 55, 75, 0.12);
-  font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #e0e5dc;
+  border-radius: 22px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 4px 16px rgba(31, 42, 36, 0.04);
+  text-decoration: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .home-shortcut:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 2px 4px rgba(40, 55, 75, 0.1), 0 16px 32px rgba(40, 55, 75, 0.18);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(31, 42, 36, 0.09);
 }
 
-.home-shortcut--stock { --accent: #5b3a2e; }
-.home-shortcut--order { --accent: #0b4aa6; }
-.home-shortcut--menu { --accent: #111; }
+.home-shortcut:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.home-shortcut--order { --accent: #245c9a; --accent-soft: #eaf1fa; }
+.home-shortcut--menu { --accent: #4a6b3c; --accent-soft: #edf3e7; }
+
+.home-shortcut-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-shortcut-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.home-shortcut-icon svg { width: 25px; height: 25px; }
 
 .home-shortcut-title {
   color: var(--accent) !important;
-  text-align: center;
-  font-family: inherit;
-  font-size: 44px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.02em !important;
-}
-
-/* เส้นเน้นสั้นๆ ใต้หัวข้อ */
-.home-shortcut-title::after {
-  content: '';
-  display: block;
-  width: 44px;
-  height: 4px;
-  margin: 8px auto 0;
-  border-radius: 999px;
-  background: var(--accent);
-  opacity: 0.55;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.25;
 }
 
 .home-shortcut-heading {
-  align-self: flex-start;
-  margin-top: 24px !important;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 0.01em !important;
+  margin-top: 3px !important;
+  color: var(--muted) !important;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.home-shortcut-unit {
-  align-self: flex-start;
-  margin-top: 4px !important;
-  color: #4a5666;
-  font-size: 18px;
-  font-weight: 500;
+.home-shortcut-metric {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px !important;
 }
+
+.home-shortcut-metric strong {
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 750;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.home-shortcut-metric > span { color: var(--muted); font-size: 14px; }
+
+.home-shortcut-detail {
+  margin: 10px 0 22px !important;
+  color: var(--muted) !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.home-shortcut-detail--warning { color: #9a5b17 !important; }
 
 .home-shortcut-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: auto;
-  padding: 12px 44px;
-  border-radius: 999px;
-  background: #eff1ca;
-  box-shadow: 0 2px 6px rgba(40, 55, 75, 0.16);
-  color: #000;
-  font-size: 20px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.home-shortcut-button:hover,
-.home-shortcut-button:focus-visible {
-  background: #f6f8d6;
-  box-shadow: 0 4px 12px rgba(40, 55, 75, 0.22);
-  transform: translateY(-1px);
-  outline: none;
+.home-shortcut-arrow {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  font-size: 20px;
 }
 
 /* ---------- Ai forecast ---------- */
@@ -322,6 +352,7 @@
 .home-dot--warn { background: #f5c518; }
 .home-dot--danger { background: #ef3b3b; }
 .home-dot--ok { background: #5fcf4f; }
+.home-dot--empty { background: #374151; }
 
 .home-status {
   min-width: 72px;
@@ -335,6 +366,7 @@
 .home-status--warn { background: #fff4cc; color: #8a6a00; }
 .home-status--danger { background: #fde8e8; color: #b42323; }
 .home-status--ok { background: #e4f6df; color: #2f7a22; }
+.home-status--empty { background: #e5e7eb; color: #374151; }
 
 .home-stats-label {
   flex: 1;
@@ -363,10 +395,6 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
-  .home-shortcuts {
-    grid-template-columns: 1fr;
-  }
-
   .home-summary {
     grid-template-columns: 1fr;
   }
@@ -378,4 +406,11 @@
   .home-forecast {
     padding-bottom: 150px;
   }
+}
+
+@media (max-width: 680px) {
+  .home-shortcuts { grid-template-columns: 1fr; gap: 14px; }
+  .home-shortcut { padding: 20px; }
+  .home-shortcut-metric { margin-top: 18px !important; }
+  .home-shortcut-detail { margin-bottom: 16px !important; }
 }

@@ -14,7 +14,7 @@ import './StockTable.css'
  */
 function BorderedTable({ columns, children, className = '' }) {
   return (
-    <div className={`stock-table ${className}`.trim()}>
+    <div className={`stock-table ${className}`.trim()} role="region" aria-label={`ตาราง ${columns.join(', ')}`} tabIndex={0}>
       <table>
         <thead>
           <tr>

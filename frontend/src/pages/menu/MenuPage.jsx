@@ -11,6 +11,7 @@ import PageShell from '../../components/PageShell.jsx'
 import SearchBar from '../../components/SearchBar.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
+import { useAuth } from '../../context/AuthContext.js'
 import { MENU_CATEGORIES } from '../../data/options.js'
 import { MENU_STATUS_LABEL, getMenuStatus } from '../../utils/menuStatus.js'
 import './menu.css'
@@ -20,6 +21,7 @@ const CATEGORY_OPTIONS = MENU_CATEGORIES.map((c) => ({ value: c, label: c }))
 const STATUS_OPTIONS = Object.entries(MENU_STATUS_LABEL).map(([value, label]) => ({ value, label }))
 
 function MenuPage() {
+  const { user } = useAuth()
   const { menus, ingredients } = useInventory()
 
   // ค่าตัวกรอง — '' หมายถึง "ไม่กรอง"
@@ -71,9 +73,9 @@ function MenuPage() {
           <SearchBar value={query} onChange={setQuery} placeholder="Search Menu...." />
           <FilterDropdown label="Category" options={CATEGORY_OPTIONS} value={category} onChange={setCategory} tone="tan" />
           <FilterDropdown label="Status" options={STATUS_OPTIONS} value={status} onChange={setStatus} tone="cream" />
-          <Link className="btn-pill btn-pill--tan menu-add" to="/menu/new">
+          {user?.role === 'owner' && <Link className="btn-pill btn-pill--tan menu-add" to="/menu/new">
             + เพิ่มเมนู
-          </Link>
+          </Link>}
         </div>
 
         <div className="box menu-list">
@@ -99,14 +101,14 @@ function MenuPage() {
                   <span className={`menu-chip menu-chip--${menu.status}`}>{MENU_STATUS_LABEL[menu.status]}</span>
                 </div>
 
-                <div className="menu-card-actions">
+                {user?.role === 'owner' && <div className="menu-card-actions">
                   <Link className="btn-pill btn-pill--brown btn-pill--sm" to={`/menu/${menu.id}/edit`}>
                     แก้ไข
                   </Link>
                   <Link className="btn-pill btn-pill--gray btn-pill--sm" to={`/menu/${menu.id}/recipe`}>
                     ดูสูตรอาหาร
                   </Link>
-                </div>
+                </div>}
               </article>
             ))
           )}

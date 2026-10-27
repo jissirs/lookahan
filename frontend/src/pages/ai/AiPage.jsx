@@ -20,10 +20,12 @@ import ChartCard from '../../components/charts/ChartCard.jsx'
 import PageShell from '../../components/PageShell.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
+import { useAuth } from '../../context/AuthContext.js'
 import { useAiFeedback } from '../../hooks/useAiFeedback.js'
 import { useDashboard } from '../../hooks/useDashboard.js'
 import { refreshNotifications } from '../../hooks/useNotifications.js'
 import { api } from '../../services/api.js'
+import { isForecastForTomorrow } from '../../utils/forecastFreshness.js'
 import { askFeedback, notify } from '../../utils/dialogs.js'
 import { STATUS_LABEL, getStockStatus } from '../../utils/stockStatus.js'
 import {
@@ -49,6 +51,7 @@ const REVENUE_SERIES = [{ key: 'revenue', label: 'รายได้ที่ค
 const PRIORITY_LABEL = { high: 'สำคัญมาก', medium: 'ปานกลาง' }
 
 function AiPage() {
+  const { user } = useAuth()
   const { ingredients, menus, adjustQuantity, addMenu } = useInventory()
   const dashboard = useDashboard() // null ระหว่างโหลด
   const { feedback, sendFeedback } = useAiFeedback()
@@ -66,7 +69,7 @@ function AiPage() {
   const [refreshed, setRefreshed] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
 
-  const forecast = refreshed ?? dashboard?.forecast ?? null
+  const forecast = [refreshed, dashboard?.forecast].filter((value) => isForecastForTomorrow(value)).sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt))[0] ?? null
 
   // ----- ให้ AI วิเคราะห์ (คำนวณใหม่เมื่อ stock/เมนู/ผลพยากรณ์เปลี่ยน) -----
   const insights = useMemo(() => {
@@ -141,7 +144,7 @@ function AiPage() {
       className="btn-pill btn-pill--tan btn-pill--sm"
       type="button"
       onClick={handleRefresh}
-      disabled={refreshing || dashboard?.analyzing}
+      disabled={user?.role !== 'owner' || refreshing || dashboard?.analyzing}
     >
       {refreshing || dashboard?.analyzing ? 'AI กำลังวิเคราะห์…' : forecast ? 'ให้ AI วิเคราะห์ใหม่' : 'ให้ AI วิเคราะห์'}
     </button>
@@ -249,7 +252,7 @@ function AiPage() {
             <li>
               <strong>{ingredients.length}</strong> รายการทั้งหมด
             </li>
-            {['normal', 'low', 'critical'].map((status) => (
+            {Object.keys(STATUS_LABEL).map((status) => (
               <li key={status} className={`ai-inventory-${status}`}>
                 <strong>{ingredients.filter((i) => getStockStatus(i) === status).length}</strong> {STATUS_LABEL[status]}
               </li>
@@ -367,8 +370,8 @@ function AiPage() {
                 ผลจริงจากการปิดร้านล่าสุด ({closingHistory.days[0].date}): เหลือค้างคืน ฿{closingHistory.days[0].leftoverValue.toLocaleString('en-US')} • ของเสีย ฿
                 {closingHistory.days[0].wasteValue.toLocaleString('en-US')} • เฉลี่ยย้อนหลัง {closingHistory.summary.count} วัน: ค้างคืน ฿
                 {closingHistory.summary.averageLeftoverValue.toLocaleString('en-US')}/วัน — บันทึกที่หน้า{' '}
-                <Link className="ai-link" to="/closing">
-                  Closing
+                <Link className="ai-link" to="/statistics#closing">
+                  บันทึกปิดร้านใน Statistics
                 </Link>
               </p>
             )}
@@ -430,7 +433,7 @@ function AiPage() {
                     <button
                       type="button"
                       className="btn-pill btn-pill--cream btn-pill--sm"
-                      disabled={addedSpecials.includes(special.name) || menus.some((menu) => menu.name === special.name)}
+                      disabled={user?.role !== 'owner' || addedSpecials.includes(special.name) || menus.some((menu) => menu.name === special.name)}
                       onClick={() => handleAddSpecial(special)}
                     >
                       {addedSpecials.includes(special.name) ? 'สร้างแล้ว' : 'สร้างเป็นเมนูร่าง'}
@@ -524,7 +527,7 @@ function AiPage() {
                   </div>
 
                   <div className="ai-rec-actions">
-                    <button type="button" className="btn-pill btn-pill--cream btn-pill--sm" onClick={() => handleApply(rec)}>
+                    <button type="button" className="btn-pill btn-pill--cream btn-pill--sm" disabled={user?.role !== 'owner'} onClick={() => handleApply(rec)}>
                       นำไปใช้ (เติม stock)
                     </button>
 

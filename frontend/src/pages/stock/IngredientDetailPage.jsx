@@ -3,16 +3,15 @@
  *  - ส่วนบน: ชื่อ (เปลี่ยนชื่อได้), จำนวนคงเหลือ + สถานะ, ราคา, ปุ่ม Add / Drop
  *  - ส่วนล่าง: Stock History (ประวัติการเพิ่ม/ลด ใหม่สุดอยู่บนสุด)
  *
- * ปุ่ม "← กลับ" เปลี่ยนปลายทางตามหน้าที่พามา เช่น มาจากสูตรอาหารจะกลับไปสูตรอาหาร
+ * ปุ่มย้อนกลับใน Header ใช้หน้าต้นทาง เช่น มาจากสูตรอาหารจะกลับไปสูตรอาหาร
  * (หน้าต้นทางส่งมาทาง location.state.from = { to, label })
  */
 import { useMemo } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
-import BackLink from '../../components/BackLink.jsx'
+import { useParams } from 'react-router-dom'
 import BorderedTable from '../../components/BorderedTable.jsx'
 import NotFoundMessage from '../../components/NotFoundMessage.jsx'
 import PageShell from '../../components/PageShell.jsx'
-import PriceField from '../../components/PriceField.jsx'
+import IngredientLots from '../../components/IngredientLots.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
 import { askNumber, askText } from '../../utils/dialogs.js'
@@ -32,7 +31,6 @@ const formatAmount = (amount, unit) => `${amount > 0 ? '+' : amount < 0 ? '-' : 
 
 function IngredientDetailPage() {
   const { id } = useParams()
-  const location = useLocation()
   const { ingredients, movements, adjustQuantity, updateIngredient } = useInventory()
 
   const item = ingredients.find((i) => i.id === id)
@@ -45,10 +43,9 @@ function IngredientDetailPage() {
 
   // ไม่มีวัตถุดิบ id นี้ (เช่น พิมพ์ URL ผิด)
   if (!item) {
-    return <NotFoundMessage message="ไม่พบวัตถุดิบนี้" backTo="/stock" backLabel="Stock" />
+    return <NotFoundMessage message="ไม่พบวัตถุดิบนี้" />
   }
 
-  const back = location.state?.from ?? { to: '/stock', label: 'Stock' }
   const status = getStockStatus(item)
 
   // เปลี่ยนชื่อ — ถ้าซ้ำกับวัตถุดิบอื่น api จะปฏิเสธและแสดงกล่องแจ้งเตือนให้เอง
@@ -87,7 +84,6 @@ function IngredientDetailPage() {
         {/* ---------- ส่วนบน: ข้อมูลปัจจุบัน ---------- */}
         <section className="box detail-box">
           <header className="detail-head">
-            <BackLink to={back.to} label={back.label} />
             <h1 className="detail-name">{item.name}</h1>
             <button type="button" className="btn-pill btn-pill--sm" onClick={handleRename}>
               Rename
@@ -107,7 +103,7 @@ function IngredientDetailPage() {
 
               <div className="detail-price">
                 <span className="detail-price-label">ราคา</span>
-                <PriceField value={item.price} onChange={(price) => updateIngredient(item.id, { price })} />
+                <strong>฿{item.purchasePrice ?? item.price} / {item.purchaseUnit ?? item.unit}</strong>
               </div>
             </div>
 
@@ -122,6 +118,7 @@ function IngredientDetailPage() {
           </div>
         </section>
 
+        <IngredientLots key={`${item.id}-${item.purchaseUnit}-${item.purchaseSize}-${item.purchasePrice}`} item={item} />
         {/* ---------- ส่วนล่าง: ประวัติ ---------- */}
         <section className="box detail-box detail-history">
           <h2 className="detail-section">Stock History</h2>

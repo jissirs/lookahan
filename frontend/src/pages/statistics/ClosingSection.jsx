@@ -1,5 +1,5 @@
 /**
- * หน้า Closing (/closing) — ปิดร้านทุกคืน: นับวัตถุดิบที่เหลือจริง + จดของเสีย
+ * ส่วนบันทึกปิดร้านใน Statistics — นับวัตถุดิบที่เหลือจริง + จดของเสีย
  *
  * ทำไมต้องมี: เป้าหมายของร้านคือ "ใช้วัตถุดิบให้หมดพอดี ของค้างคืนน้อยที่สุด" แต่จะรู้ว่าทำได้จริงไหมต้องวัด
  *   ปิดร้านแล้วได้ "มูลค่าของค้างคืน" และ "ของเสีย" เป็นตัวเลขจริง — AI ใช้ตัวเลขนี้ปรับคำแนะนำของวันถัดไป
@@ -12,7 +12,6 @@
  * ถ้าวันนี้ปิดร้านไปแล้ว จะแสดงสรุปของการปิดร้านแทนฟอร์ม พร้อมประวัติย้อนหลัง
  */
 import { useCallback, useEffect, useState } from 'react'
-import PageShell from '../../components/PageShell.jsx'
 import StatCard from '../../components/StatCard.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
 import { api } from '../../services/api.js'
@@ -24,7 +23,7 @@ const baht = (value) => `฿${(value ?? 0).toLocaleString('en-US')}`
 // แปลงข้อความในช่องกรอกเป็นจำนวนเต็ม (ช่องว่าง = 0, ไม่ใช่จำนวนเต็ม = NaN)
 const toWhole = (text) => (text === '' ? 0 : Number(text))
 
-function ClosingPage() {
+function ClosingSection() {
   const { ingredients, reload } = useInventory()
 
   // today = ผลจาก GET /closing/today, history = ผลจาก GET /closing/history (null = ยังโหลดไม่เสร็จ)
@@ -40,6 +39,7 @@ function ClosingPage() {
   const load = useCallback(async () => {
     try {
       const [todayResult, historyResult] = await Promise.all([api.closing.today(), api.closing.history()])
+      setError('')
       setToday(todayResult)
       setHistory(historyResult)
     } catch (err) {
@@ -48,8 +48,12 @@ function ClosingPage() {
   }, [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    let active = true
+    Promise.all([api.closing.today(), api.closing.history()]).then(([todayResult, historyResult]) => {
+      if (active) { setToday(todayResult); setHistory(historyResult) }
+    }).catch(err => { if (active) setError(err.message || 'โหลดข้อมูลไม่สำเร็จ') })
+    return () => { active = false }
+  }, [])
 
   const setField = (id, field, value) =>
     setInputs((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
@@ -81,7 +85,7 @@ function ClosingPage() {
         note,
         lines: rows.map(({ item, counted, waste }) => ({ ingredientId: item.id, countedQty: counted, wasteQty: waste })),
       })
-      reload() // Backend ปรับ stock ตามที่นับจริงแล้ว → โหลดคลังใหม่
+      await reload() // Backend ปรับ stock ตามที่นับจริงแล้ว → โหลดคลังใหม่
       await load()
       notify({ title: 'ปิดร้านวันนี้เรียบร้อย' })
     } catch (err) {
@@ -92,26 +96,16 @@ function ClosingPage() {
   }
 
   if (error) {
-    return (
-      <PageShell>
-        <p className="page-empty">{error}</p>
-      </PageShell>
-    )
+    return <p className="page-empty" role="alert">{error}</p>
   }
   if (!today || !history) {
-    return (
-      <PageShell>
-        <p className="page-empty">กำลังโหลดข้อมูล…</p>
-      </PageShell>
-    )
+    return <p className="page-empty" role="status">กำลังโหลดข้อมูลปิดร้าน…</p>
   }
 
   const closed = today.closing
 
   return (
-    <PageShell>
       <div className="closing-page">
-        <h1 className="page-title">Closing</h1>
         <p className="closing-note">
           ปิดร้านทุกคืน: นับวัตถุดิบที่เหลือจริงและจดของเสีย เพื่อวัดว่า “ของค้างคืนน้อยที่สุด” ได้จริงไหม — AI ใช้ตัวเลขนี้ปรับคำแนะนำของวันถัดไป
         </p>
@@ -280,8 +274,7 @@ function ClosingPage() {
           )}
         </section>
       </div>
-    </PageShell>
   )
 }
 
-export default ClosingPage
+export default ClosingSection

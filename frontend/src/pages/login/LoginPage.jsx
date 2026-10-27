@@ -85,7 +85,7 @@ function LoginPage() {
     } catch (err) {
       // 3) ล้มเหลว — แยกว่าเป็น "รหัสผิด" หรือ "ข้อผิดพลาดอื่น" (เช่น เซิร์ฟเวอร์ล่ม)
       const isWrongPassword = err.code === 'INVALID_CREDENTIALS'
-      const attempts = failures + 1
+      const attempts = failures + (isWrongPassword ? 1 : 0)
       setFailures(attempts)
 
       // 4) รหัสผิดครบ 3 ครั้ง → พาไปหน้าลืมรหัสผ่าน (ไม่แสดงกล่อง error ซ้ำ)

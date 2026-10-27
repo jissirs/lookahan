@@ -30,6 +30,7 @@ import math
 from datetime import datetime, time, timedelta
 
 from flask import current_app, g
+from sqlalchemy.orm import selectinload
 
 from .models import MENU_CATEGORIES, ClosingCount, ForecastHistory, Ingredient, Menu, Order, now
 from .tools import ApiError
@@ -54,7 +55,7 @@ def to_count(value):
     """แปลงเป็นจำนวนเต็มที่ไม่ติดลบ (AI อาจตอบเป็น 12.0 หรือ "12") — แปลงไม่ได้ให้เป็น 0"""
     try:
         return max(0, round(float(value)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
 
 
@@ -79,12 +80,14 @@ def fill_actuals():
     ฟังก์ชันนี้แค่แก้ค่าในถาด — ฟังก์ชันที่เรียกเป็นคน commit"""
     # [R] READ: ผลพยากรณ์ของสาขานี้ที่วันที่ผ่านไปแล้วแต่ยังไม่มียอดจริง
     pending = ForecastHistory.query.filter(
-        ForecastHistory.branch_id == g.branch_id, ForecastHistory.actual_orders.is_(None),
+        ForecastHistory.branch_id == g.branch_id,
         ForecastHistory.target_date < local_today(),
     ).all()
     for row in pending:
         start, end = day_bounds(row.target_date)
         # [R] READ: ออเดอร์จริงของวันนั้น (ไม่รวมที่ยกเลิก)
+        if row.generated_at >= start:
+            continue
         orders = Order.query.filter(
             Order.branch_id == g.branch_id, Order.created_at >= start, Order.created_at < end, Order.status != 'cancelled',
         ).all()
@@ -106,9 +109,10 @@ def accuracy_report(days=30):
     # [R] READ: ผลพยากรณ์ที่มียอดจริงแล้ว ใหม่ → เก่า
     rows = ForecastHistory.query.filter(
         ForecastHistory.branch_id == g.branch_id, ForecastHistory.target_date >= since,
-        ForecastHistory.actual_orders.isnot(None),
+        ForecastHistory.actual_orders.isnot(None), ForecastHistory.target_date < local_today(),
     ).order_by(ForecastHistory.target_date.desc()).all()
 
+    rows = [row for row in rows if row.generated_at < day_bounds(row.target_date)[0]]
     items = [{
         'date': row.target_date.isoformat(),
         'forecastOrders': row.orders, 'actualOrders': row.actual_orders, 'baselineOrders': row.baseline_orders,
@@ -125,7 +129,14 @@ def accuracy_report(days=30):
     baseline_errors = [percent_error(i['baselineOrders'], i['actualOrders']) for i in items]
     baseline_mape = average([abs(e) if e is not None else None for e in baseline_errors])
     usable = len([i for i in items if i['actualOrders'] > 0])
+    absolute_errors = [abs(i['forecastOrders'] - i['actualOrders']) for i in items]
+    actual_total = sum(i['actualOrders'] for i in items)
+    baseline_absolute = sum(abs(i['baselineOrders'] - i['actualOrders']) for i in items)
     summary = {
+        'ordersMae': average(absolute_errors),
+        'ordersWape': round(sum(absolute_errors) / actual_total * 100, 1) if actual_total else None,
+        'baselineWape': round(baseline_absolute / actual_total * 100, 1) if actual_total else None,
+        'zeroSalesDays': sum(i['actualOrders'] == 0 for i in items),
         'count': len(items),
         'ordersMape': orders_mape,  # ค่าคลาดเฉลี่ย % (ยิ่งน้อยยิ่งแม่น)
         'revenueMape': average([abs(i['revenueErrorPct']) if i['revenueErrorPct'] is not None else None for i in items]),
@@ -157,22 +168,60 @@ def expected_portions(menus, total_dishes, shares, dishes_by_menu):
     ขั้นที่ 1: จานทั้งหมด × สัดส่วนของประเภท = งบจานของประเภทนั้น
     ขั้นที่ 2: แบ่งงบให้เมนูที่เปิดขายในประเภทนั้นตาม "ยอดขายในอดีต" (ไม่เคยขายเลยก็แบ่งเท่า ๆ กัน)
     """
-    portions = {}
+    weights = {}
     for category, share in shares.items():
-        in_category = [menu for menu in menus if menu.available and menu.category == category]
+        in_category = [menu for menu in menus if menu.available and menu.recipe and menu.category == category]
         if not in_category:
             continue
-        weights = {menu.id: dishes_by_menu.get(menu.name, 0) for menu in in_category}
-        weight_total = sum(weights.values())
+        category_weights = {menu.id: dishes_by_menu.get(menu.name, 0) for menu in in_category}
+        weight_total = sum(category_weights.values())
         for menu in in_category:
-            part = weights[menu.id] / weight_total if weight_total else 1 / len(in_category)
-            portions[menu.id] = total_dishes * share * part
+            part = category_weights[menu.id] / weight_total if weight_total else 1 / len(in_category)
+            weights[menu.id] = max(0, share) * part
+    # กระจายเฉพาะเมนูที่ทำได้ตามสูตร และใช้จำนวนเต็ม ไม่ซื้อเผื่อเพราะปัดเศษทุกเมนูขึ้น
+    if not weights:
+        weights = {menu.id: dishes_by_menu.get(menu.name, 0) for menu in menus if menu.available and menu.recipe}
+        if not weights:
+            return {}
+    if not sum(weights.values()):
+        weights = {key: 1 for key in weights}
+    total = max(0, math.ceil(round(total_dishes, 6)))
+    raw = {key: total * weight / sum(weights.values()) for key, weight in weights.items()}
+    portions = {key: math.floor(value) for key, value in raw.items()}
+    ranked = sorted(raw, key=lambda key: (-(raw[key] - portions[key]), key))
+    for key in ranked[:total - sum(portions.values())]:
+        portions[key] += 1
     return portions
 
 
-def outlook_rows(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order):
+def historical_modifier_rates(orders, menus):
+    """Use observed choice rates with CURRENT option recipes; ignore untracked legacy plain dishes."""
+    counts, choices = {}, {}
+    for order in orders:
+        for line in order.items:
+            if getattr(line, 'recipe_snapshot', None) is None and not getattr(line, 'modifiers', None):
+                continue
+            counts[line.menu_id] = counts.get(line.menu_id, 0) + line.qty
+            for option in line.modifiers or []:
+                key = (line.menu_id, option['name'])
+                choices[key] = choices.get(key, 0) + line.qty
+    result = {}
+    for menu in menus:
+        if not counts.get(menu.id):
+            continue
+        deltas = {}
+        for option in getattr(menu, 'modifiers', None) or []:
+            ratio = choices.get((menu.id, option['name']), 0) / counts[menu.id]
+            for entry in option['ingredients']:
+                key = int(entry['ingredientId'])
+                deltas[key] = deltas.get(key, 0) + ratio * entry['qty']
+        result[menu.id] = deltas
+    return result
+
+
+def outlook_rows(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order, target_day=None, modifier_rates=None):
     """คำนวณทีละวัตถุดิบ: คาดว่าต้องใช้เท่าไรพรุ่งนี้ / มีอยู่เท่าไร / ขาด / เหลือค้าง
-    (เฉพาะวัตถุดิบที่อยู่ในสูตรของเมนูที่เปิดขายอย่างน้อย 1 เมนู — ตัวที่ไม่มีเมนูไหนใช้ ไม่เกี่ยวกับการใช้ให้หมด)"""
+    รวมของสดที่ยังไม่มีเมนูใช้ เพื่อให้เห็นของค้างและไม่แนะนำซื้อเพิ่ม"""
     portions = expected_portions(menus, total_orders * dishes_per_order, shares, dishes_by_menu)
 
     demand = {}  # id วัตถุดิบ → ปริมาณที่คาดว่าจะใช้พรุ่งนี้
@@ -180,21 +229,30 @@ def outlook_rows(menus, ingredients, total_orders, shares, dishes_by_menu, dishe
     for menu in menus:
         if not menu.available:
             continue
-        for line in menu.recipe:
-            demand[line.ingredient_id] = demand.get(line.ingredient_id, 0) + portions.get(menu.id, 0) * line.quantity
-            menus_using.setdefault(line.ingredient_id, []).append((line.quantity, menu.name))
+        quantities = {line.ingredient_id: line.quantity for line in menu.recipe}
+        for key, delta in (modifier_rates or {}).get(menu.id, {}).items():
+            quantities[key] = max(0, quantities.get(key, 0) + delta)
+        for key, quantity in quantities.items():
+            demand[key] = demand.get(key, 0) + portions.get(menu.id, 0) * quantity
+            menus_using.setdefault(key, []).append((quantity, menu.name))
 
     rows = []
+    fresh_categories = current_app.config['FRESH_STOCK_CATEGORIES']
     for ingredient in ingredients:
-        if ingredient.id not in menus_using:
+        fresh = ingredient.category in fresh_categories
+        if ingredient.id not in menus_using and not fresh:
             continue
         need = int(math.ceil(round(demand.get(ingredient.id, 0), 6)))  # round กันเลขทศนิยมคลาดเคลื่อน เช่น 30.000000000000004
-        stock = ingredient.quantity
-        using = sorted(menus_using[ingredient.id], reverse=True)  # เมนูที่ใช้ตัวนี้ต่อจานมากสุดก่อน
+        from .inventory_policy import available_quantity
+        stock = available_quantity(ingredient, target_day or local_today() + timedelta(days=1)) if hasattr(ingredient, 'batches') else ingredient.quantity
+        using = sorted(menus_using.get(ingredient.id, []), reverse=True)
+        target = math.ceil(need * (1 + current_app.config['FRESH_STOCK_BUFFER_PERCENT'] / 100)) if fresh else need
+        purchase_step = current_app.config['FRESH_STOCK_PURCHASE_STEP'] if fresh else STEP.get(ingredient.unit, 1)
         rows.append({
-            'id': str(ingredient.id), 'name': ingredient.name, 'unit': ingredient.unit, 'price': ingredient.price,
-            'stock': stock, 'expectedDemand': need,
-            'shortage': max(0, need - stock),  # ขาด: ต้องเติม
+            'id': str(ingredient.id), 'name': ingredient.name, 'unit': ingredient.unit, 'price': float(ingredient.price),
+            'stock': stock, 'expectedDemand': need, 'perishable': fresh,
+            'targetStock': target, 'purchaseStep': purchase_step,
+            'shortage': max(0, target - stock),  # ซื้อเฉพาะส่วนที่ขาดตาม config
             'leftover': max(0, stock - need),  # เหลือค้างคืนถ้าเป็นไปตามที่คาด
             'status': ingredient.status,
             'menus': [name for _, name in using[:3]],  # เมนูที่ควรโปรโมตเพื่อใช้ตัวนี้ให้หมด
@@ -208,11 +266,12 @@ def summarize_outlook(rows, dishes_per_order):
     restock = []
     for row in rows:
         if row['shortage'] > 0:
-            suggested = round_up(row['shortage'], STEP.get(row['unit'], 1))
+            suggested = round_up(row['shortage'], row['purchaseStep'])
             urgent = row['status'] != 'normal' or row['shortage'] > row['stock']
             restock.append({
                 'id': row['id'], 'name': row['name'], 'unit': row['unit'], 'stock': row['stock'],
-                'expectedDemand': row['expectedDemand'], 'shortage': row['shortage'], 'suggested': suggested,
+                'expectedDemand': row['expectedDemand'], 'targetStock': row['targetStock'], 'purchaseStep': row['purchaseStep'],
+                'shortage': row['shortage'], 'suggested': suggested,
                 'priority': 'high' if urgent else 'medium', 'menus': row['menus'],
             })
     restock.sort(key=lambda r: (r['priority'] != 'high', -r['shortage'] / (r['stock'] + 1)))
@@ -241,8 +300,8 @@ def summarize_outlook(rows, dishes_per_order):
     }
 
 
-def build_outlook(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order):
-    rows = outlook_rows(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order)
+def build_outlook(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order, modifier_rates=None):
+    rows = outlook_rows(menus, ingredients, total_orders, shares, dishes_by_menu, dishes_per_order, modifier_rates=modifier_rates)
     return rows, summarize_outlook(rows, dishes_per_order)
 
 
@@ -252,7 +311,7 @@ def build_outlook(menus, ingredients, total_orders, shares, dishes_by_menu, dish
 
 def inventory_summary(ingredients):
     """[R→นับ] นับวัตถุดิบ: ทั้งหมดกี่รายการ แยกตามสถานะและหมวด (โค้ดนับเอง — ตัวเลขนับห้ามให้ AI นับ)"""
-    summary = {'total': len(ingredients), 'normal': 0, 'low': 0, 'critical': 0, 'byCategory': {}}
+    summary = {'total': len(ingredients), 'normal': 0, 'low': 0, 'critical': 0, 'out_of_stock': 0, 'byCategory': {}}
     for ingredient in ingredients:
         summary[ingredient.status] += 1
         summary['byCategory'][ingredient.category] = summary['byCategory'].get(ingredient.category, 0) + 1
@@ -265,8 +324,8 @@ def short_menus(menus):
     for menu in menus:
         if not menu.available or not menu.recipe:
             continue
-        missing = [(line.ingredient.name, line.quantity, line.ingredient.quantity)
-                   for line in menu.recipe if line.ingredient.quantity < line.quantity]
+        missing = [(line.ingredient.name, line.quantity, line.ingredient.usable_quantity)
+                   for line in menu.recipe if line.ingredient.usable_quantity < line.quantity]
         if missing:
             result.append((menu, missing))
     return result
@@ -278,15 +337,15 @@ def collect_history():
     offset = timedelta(hours=current_app.config['TIMEZONE_OFFSET_HOURS'])
     since = now() - timedelta(days=HISTORY_DAYS)
     # [R] READ: ออเดอร์ย้อนหลังของสาขานี้ที่ไม่ได้ยกเลิก (>= since = ใหม่กว่าวันที่กำหนด)
-    orders = Order.query.filter(
+    orders = Order.query.options(selectinload(Order.items)).filter(
         Order.branch_id == g.branch_id, Order.created_at >= since, Order.status != 'cancelled',
     ).all()
     if len(orders) == 0:
         raise ApiError('VALIDATION', 'ยังไม่มีออเดอร์ให้ AI วิเคราะห์')
 
     # [R] READ: เมนูและวัตถุดิบทุกแถวของสาขา
-    all_menus = Menu.query.filter_by(branch_id=g.branch_id).all()
-    ingredients = Ingredient.query.filter_by(branch_id=g.branch_id).order_by(Ingredient.id).all()
+    all_menus = Menu.query.options(selectinload(Menu.recipe)).filter_by(branch_id=g.branch_id).all()
+    ingredients = Ingredient.query.filter_by(branch_id=g.branch_id, deleted_at=None).order_by(Ingredient.id).all()
     category_of = {menu.id: menu.category for menu in all_menus}
 
     orders_by_hour = {hour: 0 for hour in OPEN_HOURS}  # ออเดอร์ในแต่ละชั่วโมง (เวลาท้องถิ่น) รวมทุกวัน
@@ -332,11 +391,12 @@ def collect_history():
     # แผนความสด "ฐาน": ถ้าพรุ่งนี้ขายเท่าค่าเฉลี่ยต่อวัน จะเติมอะไร/เหลืออะไร (ให้ AI ใช้เขียนคำแนะนำ)
     category_total = sum(dishes_by_category.values())
     base_shares = {name: count / category_total for name, count in dishes_by_category.items()} if category_total else {}
-    base_rows, base = build_outlook(all_menus, ingredients, average_orders, base_shares, dishes_by_menu, dishes_per_order)
+    modifier_rates = historical_modifier_rates(orders, all_menus)
+    base_rows, base = build_outlook(all_menus, ingredients, average_orders, base_shares, dishes_by_menu, dishes_per_order, modifier_rates)
 
     # สถานะวัตถุดิบ: เฉพาะตัวที่ใกล้หมด/วิกฤต + เมนูที่ทำไม่ได้ (ไม่ส่งทุกตัว ประหยัดและตรงประเด็น)
     low_ingredients = [
-        {'name': i.name, 'unit': i.unit, 'quantity': i.quantity, 'status': i.status}
+        {'name': i.name, 'unit': i.unit, 'quantity': i.usable_quantity, 'status': i.status}
         for i in ingredients if i.status != 'normal'
     ][:30]
     blocked = [
@@ -374,6 +434,7 @@ def collect_history():
         'ordersByHour': orders_by_hour,
         'dishesByCategory': dishes_by_category,
         'dishesByMenu': dishes_by_menu,
+        'modifierRates': modifier_rates,
         'recentDays': recent_days,
         'weekdayAverages': weekday_averages,
         'sellableMenus': [{'name': m.name, 'category': m.category, 'price': m.price} for m in all_menus if m.available],
@@ -426,14 +487,15 @@ def clean_alerts(raw_alerts, menus, ingredients, rows):
             ingredient = by_name[name.lower()]
             if ingredient.status == 'normal' and shortage.get(ingredient.name, 0) == 0:
                 continue  # AI เตือนเรื่องที่ไม่จริง → ทิ้ง
-            level = 'danger' if ingredient.status == 'critical' else 'warn'
+            level = 'danger' if ingredient.status in ('critical', 'out_of_stock') else 'warn'
+            status_text = {'out_of_stock': 'หมด', 'critical': 'วิกฤต'}.get(ingredient.status, 'ใกล้หมด/ไม่พอ')
             detail = 'เหลือ %s %s' % (ingredient.quantity, ingredient.unit)
             if shortage.get(ingredient.name):
                 detail += ' (คาดว่าพรุ่งนี้ต้องใช้อีก %s)' % shortage[ingredient.name]
             alerts.append({
                 'type': 'ingredient', 'name': ingredient.name, 'level': level, 'link': '/stock/%s' % ingredient.id,
                 'message': message or 'วัตถุดิบนี้กำลังจะไม่พอ ควรเติม', 'detail': detail,
-                'title': 'AI เตือน: %s %s' % (ingredient.name, 'วิกฤต' if ingredient.status == 'critical' else 'ใกล้หมด/ไม่พอ'),
+                'title': 'AI เตือน: %s %s' % (ingredient.name, status_text),
             })
         elif kind == 'menu' and name.lower() in menu_by_name:
             menu = menu_by_name[name.lower()]
@@ -474,7 +536,7 @@ def clean_specials(raw_specials, menus, ingredients, rows):
         for line in raw.get('ingredients') or []:
             ingredient = by_name.get(str((line or {}).get('name') or '').strip().lower()) if isinstance(line, dict) else None
             qty = to_count(line.get('qty')) if isinstance(line, dict) else 0
-            if ingredient is None or qty < 1 or qty > ingredient.quantity or ingredient.id in used:
+            if ingredient is None or qty < 1 or qty > ingredient.usable_quantity or ingredient.id in used:
                 continue
             used.add(ingredient.id)
             lines.append({'ingredientId': str(ingredient.id), 'name': ingredient.name, 'unit': ingredient.unit, 'qty': qty})
@@ -482,7 +544,7 @@ def clean_specials(raw_specials, menus, ingredients, rows):
         if not lines or not any(line['name'] in leftover_names for line in lines):
             continue
 
-        cost = sum(line['qty'] * by_name[line['name'].lower()].price for line in lines)
+        cost = sum(line['qty'] * float(by_name[line['name'].lower()].price) for line in lines)
         floor_price = math.ceil(cost * MIN_MARGIN)
         price = to_count(raw.get('price'))
         if price < floor_price:
@@ -511,6 +573,14 @@ def clean_forecast(answer, history):
     if not isinstance(answer, dict):
         raise ApiError('AI_ERROR', 'AI ตอบข้อมูลไม่ครบ')
 
+    # JSON ถูกไวยากรณ์ไม่ได้แปลว่าชนิดข้อมูลถูก: ตรวจทุก list ก่อนวนอ่าน
+    for field in ('hourly', 'categories', 'daily', 'alerts', 'specials', 'advice'):
+        if answer.get(field) is not None and not isinstance(answer[field], list):
+            raise ApiError('AI_ERROR', 'AI ตอบข้อมูลไม่ถูกต้อง (%s ต้องเป็นรายการ)' % field)
+    for special in answer.get('specials') or []:
+        if isinstance(special, dict) and special.get('ingredients') is not None and not isinstance(special['ingredients'], list):
+            raise ApiError('AI_ERROR', 'AI ตอบข้อมูลไม่ถูกต้อง (ingredients ต้องเป็นรายการ)')
+
     # 1) รายชั่วโมง: เอาตามที่ AI ตอบ ชั่วโมงไหนไม่มีให้เป็น 0
     ai_hours = {}
     for row in answer.get('hourly') or []:
@@ -535,7 +605,9 @@ def clean_forecast(answer, history):
     for row in answer.get('categories') or []:
         if isinstance(row, dict) and row.get('category') in MENU_CATEGORIES:
             try:
-                shares[row['category']] = max(0.0, float(row.get('share')))
+                share = float(row.get('share'))
+                if math.isfinite(share):
+                    shares[row['category']] = max(0.0, share)
             except (TypeError, ValueError):
                 pass
     share_total = sum(shares.values())
@@ -549,7 +621,7 @@ def clean_forecast(answer, history):
     best_seller = answer.get('bestSeller')
     if best_seller not in sellable:
         sold = history['dishesByMenu']
-        best_seller = max(sold, key=sold.get)
+        best_seller = max(sellable, key=lambda name: sold.get(name, 0), default='-')
 
     # 5) รายได้รายวัน 7 วันข้างหน้า (วันที่ 1 = พรุ่งนี้ ใช้ออเดอร์เท่ากับผลรวมรายชั่วโมงเพื่อให้ตัวเลขตรงกัน)
     average_value = history['averageOrderValue']
@@ -568,9 +640,9 @@ def clean_forecast(answer, history):
 
     # 6) แผนความสด + ตรวจการแจ้งเตือนของ AI (ดึงเมนู/วัตถุดิบล่าสุดมาเทียบ)
     # [R] READ: เมนูและวัตถุดิบทุกแถวของสาขา
-    menus = Menu.query.filter_by(branch_id=g.branch_id).all()
-    ingredients = Ingredient.query.filter_by(branch_id=g.branch_id).order_by(Ingredient.id).all()
-    rows, outlook = build_outlook(menus, ingredients, total, shares, history['dishesByMenu'], history['dishesPerOrder'])
+    menus = Menu.query.options(selectinload(Menu.recipe)).filter_by(branch_id=g.branch_id).all()
+    ingredients = Ingredient.query.filter_by(branch_id=g.branch_id, deleted_at=None).order_by(Ingredient.id).all()
+    rows, outlook = build_outlook(menus, ingredients, total, shares, history['dishesByMenu'], history['dishesPerOrder'], history.get('modifierRates'))
     alerts = clean_alerts(answer.get('alerts'), menus, ingredients, rows)
     specials = clean_specials(answer.get('specials'), menus, ingredients, rows)
 

@@ -49,10 +49,11 @@
 ตารางที่เชื่อมกัน (relationship): เช่น Menu.recipe คือรายการ MenuIngredient ของเมนูนั้น
   เพิ่ม/เอาออกจาก list นี้ = สร้าง/ลบแถวในตารางลูกให้อัตโนมัติ (cascade) และลบเมนู → สูตรของเมนูนั้นหายตาม
 
-หมายเหตุ: ระบบนี้ "ไม่มี API ลบ" วัตถุดิบ เมนู หรือออเดอร์ โดยตั้งใจ — เพราะประวัติ stock และออเดอร์เก่าต้องอ้างถึงของเหล่านี้ได้
+หมายเหตุ: วัตถุดิบลบออกจากรายการใช้งานแบบกู้คืนได้ (deleted_at) ไม่ลบแถวจริง ส่วนเมนูและออเดอร์ไม่มี API ลบ — ประวัติเดิมยังอ้างถึงได้
 ออเดอร์ที่ "ยกเลิก" จึงเปลี่ยนสถานะ (UPDATE) ไม่ใช่ลบแถว ส่วน [D] ใช้กับข้อมูลชั่วคราว เช่น session (token) และ OTP
 """
 from datetime import datetime, timezone
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 
 from . import db
 
@@ -67,14 +68,16 @@ NOTIFICATION_LEVELS = ('info', 'warn', 'danger')  # น้ำเงิน / เ�
 
 
 # เกณฑ์สถานะ stock (ต้องตรงกับ frontend/src/utils/stockStatus.js) — ใช้ทั้งแจ้งเตือนและ AI
-CRITICAL_AT = 1  # จำนวนคงเหลือ <= ค่านี้ = วิกฤต (หน่วย pcs)
-LOW_AT = 2  # จำนวนคงเหลือ <= ค่านี้ = ใกล้หมด (หน่วย pcs)
+CRITICAL_AT = 5  # 1–5 pcs = วิกฤต (0 แยกเป็นของหมด)
+LOW_AT = 10  # 6–10 pcs = ใกล้หมด; มากกว่า 10 = ปกติ
 UNIT_SCALE = {'pcs': 1, 'g': 100, 'ml': 100}  # g และ ml ตัวเลขใหญ่กว่า pcs จึงคูณเกณฑ์ด้วยค่านี้
-STATUS_RANK = {'normal': 0, 'low': 1, 'critical': 2}  # ยิ่งมากยิ่งแย่
+STATUS_RANK = {'normal': 0, 'low': 1, 'critical': 2, 'out_of_stock': 3}  # ยิ่งมากยิ่งแย่
 
 
 def stock_status(quantity, unit):
-    """คืน 'normal' | 'low' | 'critical' จากจำนวนคงเหลือและหน่วย"""
+    """คืนสถานะ 4 ระดับ: ของหมด = 0, วิกฤต <= 5×scale, ใกล้หมด <= 10×scale, ปกติสูงกว่านั้น"""
+    if quantity <= 0:
+        return 'out_of_stock'
     scale = UNIT_SCALE.get(unit, 1)
     if quantity <= CRITICAL_AT * scale:
         return 'critical'
@@ -131,12 +134,15 @@ class User(db.Model):
     surname = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(190), unique=True, nullable=False)  # unique = ซ้ำกันไม่ได้
     password_hash = db.Column(db.String(255), nullable=False)  # เก็บเฉพาะค่าที่ "ตีป่น" แล้ว ไม่เก็บรหัสจริง
+    role = db.Column(db.String(12), default='staff', nullable=False)
+    approved = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
 
     branch = db.relationship('Branch')  # user.branch = สาขาของผู้ใช้
 
     def to_json(self):
-        return {'id': str(self.id), 'name': self.name, 'surname': self.surname, 'email': self.email}
+        return {'id': str(self.id), 'name': self.name, 'surname': self.surname, 'email': self.email,
+                'role': self.role, 'approved': self.approved}
 
 
 class Session(db.Model):
@@ -153,6 +159,8 @@ class Session(db.Model):
     token_hash = db.Column(db.String(64), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
+    device_name = db.Column(db.String(160))
+    last_seen_at = db.Column(db.DateTime)
 
     user = db.relationship('User')
 
@@ -200,17 +208,32 @@ class Ingredient(db.Model):
     category = db.Column(db.String(20), nullable=False)
     unit = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Integer, default=0, nullable=False)  # จำนวนคงเหลือ
-    price = db.Column(db.Integer, default=0, nullable=False)  # ราคาต่อหน่วย (บาท)
+    price = db.Column(db.Numeric(18, 6), default=0, nullable=False)  # ราคาต่อหน่วย (บาท)
+
+    purchase_unit = db.Column(db.String(10), nullable=True)
+    purchase_size = db.Column(db.Integer, nullable=False, default=1, server_default='1')
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    batches = db.relationship('IngredientBatch', lazy='selectin', cascade='all, delete-orphan')
+
+    @property
+    def usable_quantity(self):
+        from .inventory_policy import available_quantity
+        return available_quantity(self)
 
     @property
     def status(self):
-        """สถานะ stock ตอนนี้: 'normal' | 'low' | 'critical' (ใช้เป็น ingredient.status)"""
-        return stock_status(self.quantity, self.unit)
+        """สถานะ stock ตอนนี้: normal / low / critical / out_of_stock"""
+        return stock_status(self.usable_quantity, self.unit)
 
     def to_json(self):
         return {
             'id': str(self.id), 'name': self.name, 'category': self.category,
             'unit': self.unit, 'quantity': self.quantity, 'price': self.price,
+            'deletedAt': to_iso(self.deleted_at),
+            'usableQuantity': self.usable_quantity,
+            'purchaseUnit': self.purchase_unit or self.unit, 'purchaseSize': self.purchase_size,
+            'purchasePrice': round(self.price * self.purchase_size, 2),
+            'batches': [batch.to_json() for batch in self.batches if batch.remaining > 0],
         }
 
 
@@ -231,6 +254,7 @@ class Movement(db.Model):
     label = db.Column(db.String(120), nullable=False)  # ข้อความที่แสดง เช่น "Order #0163"
     amount = db.Column(db.Integer, nullable=False)  # + เพิ่ม, - ลด
     balance = db.Column(db.Integer, nullable=False)  # ยอดคงเหลือหลังเปลี่ยน
+    cost = db.Column(db.Numeric(18, 6))
     created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
 
     def to_json(self):
@@ -256,11 +280,12 @@ class Menu(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False, index=True)
     name = db.Column(db.String(120), nullable=False)
     category = db.Column(db.String(30), nullable=False)
-    price = db.Column(db.Integer, default=0, nullable=False)
-    image = db.Column(db.Text, default='', nullable=False)
+    price = db.Column(db.Numeric(18, 6), default=0, nullable=False)
+    image = db.Column(db.Text().with_variant(MEDIUMTEXT(), 'mysql'), default='', nullable=False)
     details = db.Column(db.Text, default='', nullable=False)
     note = db.Column(db.Text, default='', nullable=False)
     available = db.Column(db.Boolean, default=False, nullable=False)  # เปิดขายอยู่ไหม
+    modifiers = db.Column(db.JSON, default=list, nullable=False)
 
     # recipe = สูตรอาหาร (หลายบรรทัด) — ลบเมนูแล้วสูตรหายตามอัตโนมัติ
     recipe = db.relationship('MenuIngredient', cascade='all, delete-orphan', order_by='MenuIngredient.id')
@@ -269,6 +294,7 @@ class Menu(db.Model):
         return {
             'id': str(self.id), 'name': self.name, 'category': self.category, 'price': self.price,
             'image': self.image, 'details': self.details, 'note': self.note, 'available': self.available,
+            'modifiers': self.modifiers or [],
             'recipe': [{'ingredientId': str(line.ingredient_id), 'qty': line.quantity} for line in self.recipe],
         }
 
@@ -302,6 +328,7 @@ class Order(db.Model):
     __tablename__ = 'orders'
     __table_args__ = (
         db.UniqueConstraint('branch_id', 'number', name='uq_order_branch_number'),
+        db.UniqueConstraint('branch_id', 'request_key', name='uq_order_branch_request'),
         db.CheckConstraint(only('status', ORDER_STATUSES), name='ck_order_status'),
     )
 
@@ -310,17 +337,41 @@ class Order(db.Model):
     number = db.Column(db.String(10), nullable=False)  # เลขออเดอร์ เช่น "0163"
     status = db.Column(db.String(12), default='new', nullable=False)  # new → cooking → ready → done (หรือ cancelled)
     note = db.Column(db.Text, default='', nullable=False)
-    total = db.Column(db.Integer, default=0, nullable=False)  # ราคารวม
+    total = db.Column(db.Numeric(18, 2), default=0, nullable=False)  # ราคารวม
+    gross_total = db.Column(db.Numeric(18, 2))
+    ingredient_cost = db.Column(db.Numeric(18, 6))
+    discount = db.Column(db.Numeric(18, 2), default=0)
+    discount_reason = db.Column(db.String(200), default='')
+    revision = db.Column(db.Integer, default=1)
+    cancellation_mode = db.Column(db.String(20), default='')
+    cancellation_reason = db.Column(db.String(200), default='')
+    transferred_to = db.Column(db.Integer)
+    split_from = db.Column(db.Integer)
+    request_key = db.Column(db.String(80), index=True)
+    request_hash = db.Column(db.String(64))
+    service_type = db.Column(db.String(12), default='takeaway', nullable=False)
+    table_label = db.Column(db.String(30), default='', nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
 
     items = db.relationship('OrderItem', cascade='all, delete-orphan', order_by='OrderItem.id')
     usage = db.relationship('OrderUsage', cascade='all, delete-orphan', order_by='OrderUsage.id')
+    payments = db.relationship('Payment', order_by='Payment.id', lazy='selectin')
 
     def to_json(self):
         return {
             'id': str(self.id), 'number': self.number, 'createdAt': to_iso(self.created_at),
             'status': self.status, 'total': self.total, 'note': self.note,
+            'grossTotal': self.gross_total if self.gross_total is not None else self.total,
+            'ingredientCost': self.ingredient_cost, 'discount': self.discount or 0,
+            'discountReason': self.discount_reason or '', 'revision': self.revision or 1,
+            'cancellationMode': self.cancellation_mode or '', 'cancellationReason': self.cancellation_reason or '',
+            'transferredTo': str(self.transferred_to) if self.transferred_to else None,
+            'splitFrom': str(self.split_from) if self.split_from else None,
+            'serviceType': self.service_type, 'tableLabel': self.table_label,
+            'paid': sum((p.amount for p in self.payments), 0),
+            'balance': max(0, self.total - sum((p.amount for p in self.payments), 0)) if self.status != 'cancelled' else 0,
+            'payments': [p.to_json() for p in self.payments],
             'items': [item.to_json() for item in self.items],
             'usage': [{'ingredientId': str(use.ingredient_id), 'qty': use.quantity} for use in self.usage],
         }
@@ -340,12 +391,16 @@ class OrderItem(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False, index=True)
     menu_id = db.Column(db.Integer, db.ForeignKey('menus.id', ondelete='SET NULL'))
     name = db.Column(db.String(120), nullable=False)
-    price = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Numeric(18, 6), nullable=False)
     qty = db.Column(db.Integer, nullable=False)
+    modifiers = db.Column(db.JSON, default=list, nullable=False)
+    note = db.Column(db.String(200), default='', nullable=False)
+    recipe_snapshot = db.Column(db.JSON)
 
     def to_json(self):
         menu_id = str(self.menu_id) if self.menu_id else None
-        return {'menuId': menu_id, 'name': self.name, 'price': self.price, 'qty': self.qty}
+        return {'id': str(self.id), 'menuId': menu_id, 'name': self.name, 'price': self.price, 'qty': self.qty,
+                'modifiers': self.modifiers or [], 'note': self.note}
 
 
 class OrderUsage(db.Model):
@@ -459,11 +514,11 @@ class ForecastHistory(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=False, index=True)
     target_date = db.Column(db.Date, nullable=False, index=True)  # วันที่ถูกพยากรณ์ (เวลาท้องถิ่น)
     orders = db.Column(db.Integer, nullable=False)  # ออเดอร์ที่ AI คาด
-    revenue = db.Column(db.Integer, nullable=False)  # รายได้ที่ AI คาด (บาท)
+    revenue = db.Column(db.Numeric(18, 2), nullable=False)  # รายได้ที่ AI คาด (บาท)
     baseline_orders = db.Column(db.Integer, default=0, nullable=False)  # ค่าอ้างอิงจากสถิติธรรมดา (ค่าเฉลี่ยของวันนั้นในสัปดาห์) ไว้เทียบว่า AI ดีกว่าไหม
-    planned_leftover_value = db.Column(db.Integer, default=0, nullable=False)  # มูลค่าของค้างคืนที่แผนความสดคาดไว้ (บาท)
+    planned_leftover_value = db.Column(db.Numeric(18, 2), default=0, nullable=False)  # มูลค่าของค้างคืนที่แผนความสดคาดไว้ (บาท)
     actual_orders = db.Column(db.Integer)  # ยอดจริง — ว่างจนกว่าวันนั้นจะผ่านไป
-    actual_revenue = db.Column(db.Integer)
+    actual_revenue = db.Column(db.Numeric(18, 2))
     generated_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
@@ -482,10 +537,10 @@ class ClosingCount(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     business_date = db.Column(db.Date, nullable=False, index=True)  # วันที่ปิดร้าน (เวลาท้องถิ่น)
     note = db.Column(db.Text, default='', nullable=False)
-    leftover_value = db.Column(db.Integer, default=0, nullable=False)  # มูลค่าของที่เหลือจริงหลังปิดร้าน (บาท) — ยิ่งน้อยยิ่งสด
-    waste_value = db.Column(db.Integer, default=0, nullable=False)  # มูลค่าของเสียที่ทิ้ง (บาท)
-    variance_value = db.Column(db.Integer, default=0, nullable=False)  # ส่วนต่างระหว่างที่ระบบคิดกับที่นับจริง (บาท) ติดลบ = ของหายโดยไม่ทราบสาเหตุ
-    planned_leftover_value = db.Column(db.Integer)  # มูลค่าของค้างที่แผนความสดคาดไว้สำหรับวันนี้ (ถ้ามี)
+    leftover_value = db.Column(db.Numeric(18, 2), default=0, nullable=False)  # มูลค่าของที่เหลือจริงหลังปิดร้าน (บาท) — ยิ่งน้อยยิ่งสด
+    waste_value = db.Column(db.Numeric(18, 2), default=0, nullable=False)  # มูลค่าของเสียที่ทิ้ง (บาท)
+    variance_value = db.Column(db.Numeric(18, 2), default=0, nullable=False)  # ส่วนต่างระหว่างที่ระบบคิดกับที่นับจริง (บาท) ติดลบ = ของหายโดยไม่ทราบสาเหตุ
+    planned_leftover_value = db.Column(db.Numeric(18, 2))  # มูลค่าของค้างที่แผนความสดคาดไว้สำหรับวันนี้ (ถ้ามี)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
 
     lines = db.relationship('ClosingLine', cascade='all, delete-orphan', order_by='ClosingLine.id')
@@ -519,7 +574,7 @@ class ClosingLine(db.Model):
     system_qty = db.Column(db.Integer, nullable=False)  # จำนวนที่ระบบคิดว่ามีก่อนปิดร้าน
     counted_qty = db.Column(db.Integer, nullable=False)  # จำนวนที่นับได้จริง (หลังหักของเสีย = ของที่เหลือ)
     waste_qty = db.Column(db.Integer, default=0, nullable=False)  # จำนวนที่ทิ้ง
-    price = db.Column(db.Integer, default=0, nullable=False)  # ราคาต่อหน่วย ณ ตอนปิดร้าน (บาท)
+    price = db.Column(db.Numeric(18, 6), default=0, nullable=False)  # ราคาต่อหน่วย ณ ตอนปิดร้าน (บาท)
 
     ingredient = db.relationship('Ingredient')
 
@@ -528,3 +583,33 @@ class ClosingLine(db.Model):
             'ingredientId': str(self.ingredient_id), 'name': self.ingredient.name, 'unit': self.ingredient.unit,
             'systemQty': self.system_qty, 'countedQty': self.counted_qty, 'wasteQty': self.waste_qty, 'price': self.price,
         }
+
+
+class IngredientBatch(db.Model):
+    __tablename__ = 'ingredient_batches'
+    __table_args__ = (db.CheckConstraint('remaining >= 0 AND received_qty >= 0', name='ck_batch_nonneg'),)
+    id = db.Column(db.Integer, primary_key=True)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredients.id'), nullable=False, index=True)
+    remaining = db.Column(db.Integer, nullable=False)
+    received_qty = db.Column(db.Integer, nullable=False)
+    expires_on = db.Column(db.Date)
+    label = db.Column(db.String(120), nullable=False, default='')
+    received_at = db.Column(db.DateTime, nullable=False, default=now)
+    unit_cost = db.Column(db.Numeric(18, 6))
+
+    def to_json(self):
+        from .inventory_policy import business_date
+        return {'id': str(self.id), 'remaining': self.remaining,
+                'expiresOn': self.expires_on.isoformat() if self.expires_on else None,
+                'expired': bool(self.expires_on and self.expires_on < business_date()),
+                'label': self.label, 'receivedAt': to_iso(self.received_at)}
+
+
+class BatchAllocation(db.Model):
+    __tablename__ = 'batch_allocations'
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, index=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('ingredient_batches.id'), nullable=False, index=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_cost = db.Column(db.Numeric(18, 6))
+    batch = db.relationship('IngredientBatch')

@@ -10,8 +10,12 @@
  *
  * ทุกกราฟมีปุ่ม "ตาราง" แสดงข้อมูลชุดเดียวกันเป็นตัวหนังสือ (ดู ChartCard)
  */
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import PlanningSection from './PlanningSection.jsx'
+import ClosingSection from './ClosingSection.jsx'
+import RestaurantSection from './RestaurantSection.jsx'
+import { useAuth } from '../../context/AuthContext.js'
 import BorderedTable from '../../components/BorderedTable.jsx'
 import BarChart from '../../components/charts/BarChart.jsx'
 import ChartCard from '../../components/charts/ChartCard.jsx'
@@ -47,6 +51,7 @@ const STOCK_SERIES = [
   { key: 'normal', label: 'Normal', color: 'var(--chart-good)', icon: '✓' },
   { key: 'low', label: 'Low', color: 'var(--chart-warning)', icon: '▲' },
   { key: 'critical', label: 'Critical', color: 'var(--chart-critical)', icon: '✕' },
+  { key: 'out_of_stock', label: 'Out of stock', color: 'var(--chart-out-of-stock)', icon: '∅' },
 ]
 
 // เติมเข้า / ใช้ออก: เป็น "ชุดข้อมูลที่แยกกัน" จึงใช้สีแยกชุด (ไม่ใช่สีสถานะ)
@@ -82,6 +87,11 @@ const formatDateTime = (time) => {
 const formatAmount = (amount, unit) => `${amount > 0 ? '+' : '-'}${Math.abs(amount)} ${unit}`
 
 function StatisticsPage() {
+  const { user } = useAuth()
+  const location = useLocation()
+  useEffect(() => {
+    if (location.hash === '#closing') document.getElementById('closing')?.scrollIntoView({ block: 'start' })
+  }, [location.hash])
   const { ingredients, menus, movements } = useInventory()
   const dashboard = useDashboard() // null ระหว่างโหลด
 
@@ -120,6 +130,7 @@ function StatisticsPage() {
     <PageShell>
       <div className="stats-page">
         <h1 className="page-title">Statistics</h1>
+        <p><Link className="ai-link" to="/statistics#closing">บันทึกปิดร้านและของเหลือ →</Link></p>
 
         {/* ---------- 1) การ์ดสรุป ---------- */}
         <section className="stats-summary" aria-label="Summary">
@@ -141,8 +152,8 @@ function StatisticsPage() {
             subtitle="จำนวนวัตถุดิบในแต่ละหมวด แยกตามสถานะ"
             legend={STOCK_SERIES}
             table={{
-              columns: ['หมวด', 'Normal', 'Low', 'Critical', 'รวม'],
-              rows: categories.map((c) => [`${c.category} (${CATEGORY_THAI[c.category]})`, c.normal, c.low, c.critical, c.total]),
+              columns: ['หมวด', 'Normal', 'Low', 'Critical', 'Out of stock', 'รวม'],
+              rows: categories.map((c) => [`${c.category} (${CATEGORY_THAI[c.category]})`, c.normal, c.low, c.critical, c.out_of_stock, c.total]),
             }}
           >
             <BarChart
@@ -325,6 +336,12 @@ function StatisticsPage() {
             )}
           </BorderedTable>
         </section>
+        <PlanningSection />
+        <RestaurantSection />
+        {user?.role === 'owner' && <details id="closing" className="stats-closing" open={location.hash === '#closing'}>
+          <summary>บันทึกปิดร้านและของเหลือ</summary>
+          <ClosingSection />
+        </details>}
       </div>
     </PageShell>
   )

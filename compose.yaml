@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: ./Backend
+    env_file: ./Backend/.env
+    environment:
+      APP_ENV: production
+      DB_SSL_CA: /run/certs/ca.pem
+    volumes:
+      - ./Backend/ca.pem:/run/certs/ca.pem:ro
+      - backend_logs:/app/instance/logs
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/v1/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  web:
+    build: ./frontend
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+  backup:
+    build: ./Backend
+    env_file: ./Backend/.env
+    environment:
+      APP_ENV: production
+      DB_SSL_CA: /run/certs/ca.pem
+    volumes:
+      - ./Backend/ca.pem:/run/certs/ca.pem:ro
+      - backup_data:/backups
+    command: [python, scripts/backup_worker.py, --directory, /backups]
+    restart: unless-stopped
+volumes:
+  backend_logs:
+  caddy_data:
+  caddy_config:
+  backup_data:

@@ -19,7 +19,7 @@ from flask import Blueprint, g, jsonify
 
 from .. import db
 from ..forecast import local_today
-from ..models import ClosingCount, ClosingLine, ForecastHistory, Ingredient
+from ..models import Branch, ClosingCount, ClosingLine, ForecastHistory, Ingredient
 from ..tools import ApiError, find_mine, is_whole_number, json_body
 from .notifications import add_notification
 from .orders import change_stock
@@ -46,6 +46,7 @@ def get_today():
 @bp.post('/closing')
 def create_closing():
     body = json_body()
+    Branch.query.filter_by(id=g.branch_id).with_for_update().first()
     today = local_today()
 
     # [R] READ: วันนี้ปิดร้านไปแล้วหรือยัง — ปิดซ้ำไม่ได้ (UNIQUE ในฐานข้อมูลช่วยกันอีกชั้น)
@@ -73,7 +74,10 @@ def create_closing():
 
         # ของเสีย: หัก stock ออก (บันทึกเป็นประวัติ "Drop")
         if waste_qty:
-            change_stock(ingredient, -waste_qty, 'Drop', 'ของเสีย (ปิดร้าน)')
+            movement = change_stock(ingredient, -waste_qty, 'Drop', 'ของเสีย (ปิดร้าน)')
+            from ..service_models import WasteRecord
+            db.session.add(WasteRecord(branch_id=g.branch_id, user_id=g.user.id, ingredient_id=ingredient.id,
+                quantity=waste_qty, cost=movement.cost, reason='closing', note=note[:200]))
         # ส่วนต่าง: ระบบคิดว่าเหลือ (system - waste) แต่นับได้จริง counted → ปรับ stock ให้เท่าของจริง
         gap = counted - ingredient.quantity
         if gap:
@@ -138,7 +142,9 @@ def read_lines(raw_lines):
         if not isinstance(raw, dict):
             raise ApiError('VALIDATION', 'Each line must be an object')
         # [R] READ: หาวัตถุดิบ (เฉพาะของสาขาตัวเอง)
-        ingredient = find_mine(Ingredient, raw.get('ingredientId'), 'Ingredient')
+        ingredient = Ingredient.query.filter_by(id=raw.get('ingredientId'), branch_id=g.branch_id, deleted_at=None).with_for_update().first()
+        if ingredient is None:
+            raise ApiError('NOT_FOUND', 'ไม่พบวัตถุดิบ')
         if ingredient.id in seen:
             raise ApiError('VALIDATION', 'Duplicate ingredient: ' + ingredient.name)
         seen.add(ingredient.id)

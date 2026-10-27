@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api.js'
 import { AuthContext } from './AuthContext.js'
+import { clearSnapshot } from '../utils/offlineStore.js'
 
 const STORAGE_KEY = 'lookahan.auth'
 
@@ -49,7 +50,8 @@ export function AuthProvider({ children }) {
       .then((user) => {
         if (!cancelled) setAuth({ token: stored.token, user }) // อัปเดตข้อมูลผู้ใช้ให้เป็นปัจจุบัน
       })
-      .catch(() => {
+      .catch((err) => {
+        if (cancelled || err.code !== 'UNAUTHORIZED') return
         // token ใช้ไม่ได้แล้ว → เคลียร์ให้เป็นสถานะไม่ได้ล็อกอิน
         localStorage.removeItem(STORAGE_KEY)
         if (!cancelled) setAuth(null)
@@ -75,8 +77,9 @@ export function AuthProvider({ children }) {
     // แจ้งเซิร์ฟเวอร์ให้ลบ session แต่ไม่รอผล — ฝั่งหน้าจอออกจากระบบทันที
     api.auth.logout(auth?.token).catch(() => {})
     localStorage.removeItem(STORAGE_KEY)
+    if (auth?.user?.id) clearSnapshot(auth.user.id).catch(() => {})
     setAuth(null)
-  }, [auth?.token])
+  }, [auth])
 
   // ฟังก์ชันด้านล่างไม่เปลี่ยนสถานะล็อกอิน แค่ส่งต่อไปยัง api (ให้หน้าจอเรียกผ่าน useAuth ที่เดียว)
   const register = useCallback((data) => api.auth.register(data), [])

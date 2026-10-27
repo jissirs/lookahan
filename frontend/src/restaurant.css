@@ -1,0 +1,25 @@
+.restaurant-panel { border: 1px solid #d3dbcc; border-radius: 16px; padding: 16px; margin: 12px 0; min-width: 0; background: #f9fbf6; color: #24362a; }
+.restaurant-panel h2, .restaurant-panel h3 { margin-top: 0; color:inherit; }
+.restaurant-panel label:not(.search-bar) { display: grid; gap: 6px; min-width: 0; }
+.restaurant-panel input, .restaurant-panel select { max-width: 100%; box-sizing: border-box; }
+.restaurant-inline { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 10px 0; }
+.restaurant-inline > label { flex: 1 1 160px; }
+.restaurant-check { display: flex !important; align-items: center; gap: 8px; margin: 10px 0; }
+.restaurant-check input { width: 18px !important; height: 18px; }
+.restaurant-panel button, .order-payment button, .order-create button:not(.qty-control button) { cursor: pointer; border: 1px solid #bbc8b3; background: #eef2db; color: #24362a; border-radius: 12px; padding: 9px 14px; font: inherit; }
+.restaurant-panel button:disabled, .order-payment button:disabled { opacity: .5; cursor: wait; }
+.order-payment { grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid #aebbb0; min-width: 0; }
+.restaurant-audit { max-height: 280px; overflow: auto; overflow-wrap: anywhere; }
+.pos-print-overlay { position:fixed; inset:0; z-index:1000; background:#eef2e8; overflow:auto; padding:20px; color:#111; }
+.pos-print-controls { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin-bottom:20px; }
+.pos-print-controls button { padding:12px 20px; font:inherit; }
+#pos-print-root { width:min(80mm,100%); margin:0 auto; padding:16px; background:#fff; overflow-wrap:anywhere; font:16px/1.5 'Prompt',sans-serif; }
+#pos-print-root h1 { font-size:22px; margin:0 0 12px; color:#111; }
+#pos-print-root h2 { font-size:18px; margin:10px 0; color:#111; }
+@media print {
+  body > :not(.pos-print-overlay) { display:none !important; }
+  .pos-print-overlay { position:static; overflow:visible; padding:0; background:#fff; }
+  .pos-print-controls { display:none !important; }
+  #pos-print-root { width:80mm; max-width:100%; padding:0; margin:0; box-shadow:none; }
+  @page { margin:8mm; }
+}

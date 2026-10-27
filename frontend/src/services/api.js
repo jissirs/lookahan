@@ -48,6 +48,7 @@
  *   ai        : VALIDATION, AI_NOT_CONFIGURED, AI_ERROR
  *   ฝั่งหน้าจอเอง : NETWORK (ต่อ Backend ไม่ได้), SERVER_ERROR (Backend ตอบผิดรูปแบบ)
  */
+import { createMutationQueue } from '../utils/mutationQueue.js'
 import { ApiError } from './ApiError.js'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
@@ -74,7 +75,19 @@ let onUnauthorized = null
  * ส่งคำขอไป Backend แล้วคืนข้อมูล JSON ที่ได้
  * @throws ApiError  ทุกกรณีที่ไม่สำเร็จ (Backend ตอบ error หรือต่อไม่ได้เลย)
  */
-async function request(method, path, body, tokenOverride) {
+const serialize = createMutationQueue()
+function request(method, path, body, tokenOverride) {
+  const requestedToken = tokenOverride ?? token
+  const shared = /^\/(ingredients|menus|orders|closing|purchases|suppliers|waste|staff)(\/|$)/.test(path)
+  if ((method !== 'GET' && shared) || path === '/snapshot') {
+    return serialize(() => {
+      if (requestedToken !== token) throw new ApiError('SESSION_CHANGED', 'บัญชีเปลี่ยนแล้ว กรุณาทำรายการใหม่')
+      return sendRequest(method, path, body, requestedToken)
+    })
+  }
+  return sendRequest(method, path, body, tokenOverride)
+}
+async function sendRequest(method, path, body, tokenOverride) {
   const activeToken = tokenOverride ?? token
 
   let response
@@ -110,7 +123,7 @@ async function request(method, path, body, tokenOverride) {
       data?.error?.message ?? `เซิร์ฟเวอร์ตอบกลับผิดพลาด (${response.status})`,
     )
     // token หมดอายุระหว่างใช้งาน → ออกจากระบบ (ยกเว้นคำขอของหน้าบัญชีเอง เช่นล็อกอินผิด)
-    if (error.code === 'UNAUTHORIZED' && activeToken && !path.startsWith('/auth/')) onUnauthorized?.()
+    if (error.code === 'UNAUTHORIZED' && activeToken && activeToken === token && !path.startsWith('/auth/')) onUnauthorized?.()
     throw error
   }
 
@@ -190,8 +203,20 @@ const inventory = {
   },
 
   /** อ่านทีละส่วน (ใช้เมื่ออยากรีเฟรชแค่บางอย่างโดยไม่โหลดทั้งหมด) */
+  discardBatch(id, batchId) {
+    return request('POST', `/ingredients/${encodeURIComponent(id)}/batches/${encodeURIComponent(batchId)}/discard`, {})
+  },
   listIngredients() {
     return request('GET', '/ingredients')
+  },
+  listDeletedIngredients() {
+    return request('GET', '/ingredients?deleted=true')
+  },
+  deleteIngredient(id) {
+    return request('DELETE', `/ingredients/${encodeURIComponent(id)}`)
+  },
+  restoreIngredient(id) {
+    return request('POST', `/ingredients/${encodeURIComponent(id)}/restore`, {})
   },
 
   listMovements() {
@@ -207,13 +232,13 @@ const inventory = {
    * @returns {Promise<{ ingredient, movement }>}
    * @throws NOT_FOUND, INSUFFICIENT_STOCK (ลดแล้วติดลบ), VALIDATION
    */
-  adjustIngredient(id, delta, label) {
-    return request('POST', `/ingredients/${encodeURIComponent(id)}/adjust`, { delta, label })
+  adjustIngredient(id, delta, label, options = {}) {
+    return request('POST', `/ingredients/${encodeURIComponent(id)}/adjust`, { delta, label, ...options })
   },
 
   /** สร้างวัตถุดิบใหม่ (เริ่มที่ 0 ชิ้น) @throws DUPLICATE_NAME, VALIDATION */
-  createIngredient({ name, category, unit, price = 0 }) {
-    return request('POST', '/ingredients', { name, category, unit, price })
+  createIngredient(fields) {
+    return request('POST', '/ingredients', fields)
   },
 
   /** แก้ชื่อ/ประเภท/หน่วย/ราคา (แก้จำนวนต้องใช้ adjustIngredient) @throws DUPLICATE_NAME, NOT_FOUND, VALIDATION */
@@ -248,8 +273,11 @@ const orders = {
    *          ingredients/movements คือที่ "เปลี่ยน" จากการตัด stock (ให้หน้าจออัปเดตตาม)
    * @throws VALIDATION, NOT_FOUND, INSUFFICIENT_STOCK
    */
-  create({ items, note = '' }) {
-    return request('POST', '/orders', { items, note })
+  create(data) {
+    return request('POST', '/orders', data)
+  },
+  pay(id, data) {
+    return request('POST', `/orders/${encodeURIComponent(id)}/payments`, data)
   },
 
   /** เลื่อนออเดอร์ไปสถานะถัดไป: new → cooking → ready → done @throws NOT_FOUND, VALIDATION */
@@ -262,8 +290,8 @@ const orders = {
    * @returns {Promise<{ order, ingredients, movements }>}
    * @throws NOT_FOUND, VALIDATION
    */
-  cancel(id) {
-    return request('POST', `/orders/${encodeURIComponent(id)}/cancel`, {})
+  cancel(id, reason) {
+    return request('POST', `/orders/${encodeURIComponent(id)}/cancel`, reason ? { reason } : {})
   },
 }
 
@@ -371,6 +399,9 @@ const dashboard = {
    *   forecast: { orders: number, peakStart: string, peakEnd: string, bestSeller: string },
    * }>}
    */
+  purchasing(date) {
+    return request('GET', `/dashboard/purchasing${date ? `?date=${encodeURIComponent(date)}` : ''}`)
+  },
   getSummary() {
     return request('GET', '/dashboard/summary')
   },
@@ -380,6 +411,26 @@ const dashboard = {
 //  ส่งออก
 // =====================================================================
 export const api = {
+  pos: {
+    order: (id, action, fields) => request('POST', `/orders/${encodeURIComponent(id)}/${action}`, fields),
+    purchases: () => request('GET', '/purchases'),
+    supplier: fields => request('POST', '/suppliers', fields),
+    purchase: fields => request('POST', '/purchases', fields),
+    receive: (id, fields) => request('POST', `/purchases/${encodeURIComponent(id)}/receive`, fields),
+    cancelPurchase: (id, fields) => request('POST', `/purchases/${encodeURIComponent(id)}/cancel`, fields),
+    waste: fields => request('POST', '/waste', fields),
+    reports: days => request('GET', `/reports/operations?days=${days}`),
+    sessions: id => request('GET', `/staff/${encodeURIComponent(id)}/sessions`),
+    revokeSession: (userId, id, fields) => request('POST', `/staff/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(id)}/revoke`, fields),
+    transferOwner: fields => request('POST', '/staff/transfer-owner', fields),
+  },
+  restaurant: {
+    staff: () => request('GET', '/staff'),
+    approve: (id, approved) => request('PATCH', `/staff/${encodeURIComponent(id)}`, { approved }),
+    cash: () => request('GET', '/cash/today'),
+    closeCash: (data) => request('POST', '/cash/close', data),
+    audit: () => request('GET', '/audit'),
+  },
   /** ตรวจว่า Backend และฐานข้อมูลพร้อมไหม → { status: 'ok', database: 'ok' } (ไม่ต้องล็อกอิน) */
   health: () => request('GET', '/health'),
   auth,

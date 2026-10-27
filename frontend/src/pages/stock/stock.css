@@ -204,3 +204,11 @@
 .create-form .btn-pill {
   margin-top: 12px;
 }
+
+.inventory-form { display:grid; gap:16px; padding:18px 0; max-width:560px; }
+.inventory-form label, .purchase-fields label { display:grid; gap:8px; }
+.purchase-fields { display:grid; gap:12px; }
+.detail-box summary { cursor:pointer; font-weight:600; padding:12px 0; }
+
+.stock-deleted-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.stock-deleted-toggle input { width: 16px; height: 16px; accent-color: #5f7a4a; }

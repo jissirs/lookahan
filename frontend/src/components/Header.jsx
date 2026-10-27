@@ -10,18 +10,19 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.js'
+import { useBackNavigation } from '../context/BackNavigationContext.js'
 import { useDismiss } from '../hooks/useDismiss.js'
 import { timeAgo, useNotifications } from '../hooks/useNotifications.js'
-import logo from '../assets/logo.png'
+import logo from '../assets/logo-mark.png'
 import bell from '../assets/bell.png'
 import './Header.css'
+import SessionManager from './SessionManager.jsx'
 
 // รายการในเมนูนำทาง (หน้า Order / Statistics / Ai ยังไม่ได้สร้าง จึงเด้งกลับหน้าแรกไปก่อน)
 const NAV_ITEMS = [
   { label: 'Stock', to: '/stock' },
   { label: 'Menu', to: '/menu' },
   { label: 'Order', to: '/order' },
-  { label: 'Closing', to: '/closing' },
   { label: 'Statistics', to: '/statistics' },
   { label: 'Ai', to: '/ai' },
 ]
@@ -33,6 +34,7 @@ function Header() {
 
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const backNavigation = useBackNavigation()
   const { items: notifications, unread, markRead, markAllRead } = useNotifications()
   const badgeText = unread > 99 ? '99+' : String(unread)
 
@@ -60,6 +62,20 @@ function Header() {
 
   return (
     <header className="app-header" ref={rootRef}>
+      {backNavigation && (
+        <button
+          type="button"
+          className="app-header-back"
+          disabled={!backNavigation.canGoBack}
+          onClick={() => {
+            setOpenMenu(null)
+            backNavigation.goBack()
+          }}
+          aria-label="ย้อนกลับ"
+        >
+          <span aria-hidden="true">←</span> ย้อนกลับ
+        </button>
+      )}
       {/* ---------- 1) โลโก้ + เมนูนำทาง ---------- */}
       <div className="app-header-logo-wrap">
         <button
@@ -70,7 +86,8 @@ function Header() {
           aria-haspopup="true"
           aria-expanded={openMenu === 'nav'}
         >
-          <img className="app-header-logo" src={logo} alt="lookahhan" />
+          <img className="app-header-logo" src={logo} alt="" width="56" height="56" />
+          <span className="app-header-wordmark">lookahhan<small>SMART · FRESH · FOOD</small></span>
         </button>
 
         {openMenu === 'nav' && (
@@ -146,6 +163,7 @@ function Header() {
 
         {openMenu === 'user' && (
           <div className="app-header-panel app-header-panel--user" role="menu">
+            <details><summary>อุปกรณ์ที่เข้าสู่ระบบ</summary><SessionManager userId={user.id} /></details>
             <button type="button" className="app-header-menu-item" role="menuitem" onClick={handleSignOut}>
               Sign out
             </button>

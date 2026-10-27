@@ -116,6 +116,11 @@
   transition: transform 0.12s ease, background 0.12s ease;
 }
 
+.row-actions--left .stock-table-pill {
+  left: auto;
+  right: calc(50% + 28px);
+}
+
 .stock-table-round:hover:not(:disabled) {
   background: #e62626;
   transform: scale(1.06);

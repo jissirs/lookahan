@@ -12,7 +12,7 @@
  *   - ออเดอร์ 1 รายการ = เมนู 1 จาน
  */
 import { getMenuStatus } from './menuStatus.js'
-import { getStockStatus, stepFor } from './stockStatus.js'
+import { getStockStatus, isFreshIngredient, stepFor } from './stockStatus.js'
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -49,7 +49,7 @@ export function menuCapacity(menu, ingredients) {
   let bottleneck = null
   for (const line of menu.recipe) {
     const ingredient = ingredients.find((i) => i.id === line.ingredientId)
-    const possible = ingredient ? Math.floor(ingredient.quantity / line.qty) : 0
+    const possible = ingredient ? Math.floor((ingredient.usableQuantity ?? ingredient.quantity) / line.qty) : 0
     if (possible < portions) {
       portions = possible
       bottleneck = ingredient ?? null
@@ -108,21 +108,31 @@ export function expectedDemand(menus, forecast) {
  * @returns {{ key: string, ingredient: object, demand: number, shortage: number, suggested: number,
  *             priority: 'high' | 'medium', usedBy: string[] }[]}
  */
+function forecastStock(ingredient, forecast) {
+  const target = forecast.daily?.[0]?.date
+  if (!target || !ingredient.batches) return ingredient.usableQuantity ?? ingredient.quantity
+  const expired = ingredient.batches.filter((batch) => batch.expiresOn && batch.expiresOn < target)
+    .reduce((sum, batch) => sum + batch.remaining, 0)
+  return Math.max(0, ingredient.quantity - expired)
+}
+
 export function buildRestockRecommendations({ ingredients, menus, forecast }, limit = 6) {
   // ผลพยากรณ์รุ่นใหม่มี "แผนความสด" ที่ Backend คำนวณไว้แล้ว (เติมเท่าที่ขาดพอดี ของไม่ค้างคืน)
-  // ใช้ตัวเลขนั้นตรง ๆ เพื่อให้ตรงกับส่วน "ความสดของวัตถุดิบ" ในหน้า Ai — ไม่คำนวณซ้ำให้ตัวเลขสองชุดขัดกัน
+  // ใช้ความต้องการจากพยากรณ์ แต่เทียบกับ stock ปัจจุบันเสมอ เพื่อไม่เติมซ้ำหลังนำคำแนะนำไปใช้
   if (forecast.outlook) {
     return forecast.outlook.restock
       .map((row) => {
         const ingredient = ingredients.find((i) => i.id === row.id)
         if (!ingredient) return null // วัตถุดิบถูกลบไปแล้ว
+        const shortage = Math.max(0, (row.targetStock ?? row.expectedDemand) - forecastStock(ingredient, forecast))
+        if (shortage === 0) return null
         return {
           key: `restock-${row.id}`,
           ingredient,
           demand: row.expectedDemand,
-          shortage: row.shortage,
-          suggested: row.suggested,
-          priority: row.priority,
+          shortage,
+          suggested: roundUp(shortage, row.purchaseStep ?? (isFreshIngredient(ingredient) ? 1 : stepFor(ingredient.unit))),
+          priority: getStockStatus(ingredient) !== 'normal' || shortage > forecastStock(ingredient, forecast) ? 'high' : 'medium',
           usedBy: row.menus,
         }
       })
@@ -137,7 +147,7 @@ export function buildRestockRecommendations({ ingredients, menus, forecast }, li
     .map((ingredient) => {
       const entry = demand.get(ingredient.id)
       const needed = entry ? Math.ceil(entry.total) : 0
-      const shortage = needed - ingredient.quantity
+      const shortage = needed - forecastStock(ingredient, forecast)
       if (shortage <= 0) return null // พอใช้ ไม่ต้องแนะนำ
 
       // เมนูที่ใช้วัตถุดิบนี้มากที่สุด 3 อันดับ (ไว้บอกเหตุผล)
@@ -152,13 +162,13 @@ export function buildRestockRecommendations({ ingredients, menus, forecast }, li
         ingredient,
         demand: needed,
         shortage,
-        suggested: roundUp(shortage, stepFor(ingredient.unit)),
-        priority: status !== 'normal' || shortage > ingredient.quantity ? 'high' : 'medium',
+        suggested: isFreshIngredient(ingredient) ? shortage : roundUp(shortage, stepFor(ingredient.unit)),
+        priority: status !== 'normal' || shortage > forecastStock(ingredient, forecast) ? 'high' : 'medium',
         usedBy,
       }
     })
     .filter(Boolean)
-    .sort((a, b) => (a.priority === b.priority ? b.shortage / (b.ingredient.quantity + 1) - a.shortage / (a.ingredient.quantity + 1) : a.priority === 'high' ? -1 : 1))
+    .sort((a, b) => (a.priority === b.priority ? b.shortage / (forecastStock(b.ingredient, forecast) + 1) - a.shortage / (forecastStock(a.ingredient, forecast) + 1) : a.priority === 'high' ? -1 : 1))
     .slice(0, limit)
 }
 
@@ -173,7 +183,7 @@ export function blockedMenus(menus, ingredients) {
       menu,
       missing: menu.recipe
         .map((line) => ({ ingredient: ingredients.find((i) => i.id === line.ingredientId), need: line.qty }))
-        .filter(({ ingredient, need }) => ingredient && ingredient.quantity < need),
+        .filter(({ ingredient, need }) => ingredient && (ingredient.usableQuantity ?? ingredient.quantity) < need),
     }))
 }
 

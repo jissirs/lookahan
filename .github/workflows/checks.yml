@@ -1,0 +1,37 @@
+name: Restaurant checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-test-only
+          MYSQL_DATABASE: lookahan_test_ci
+        ports: ["3306:3306"]
+        options: --health-cmd="mysqladmin ping -pci-test-only" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r Backend/requirements-production.txt
+      - run: python -m pytest tests qa/workflow_audit.py -q
+        working-directory: Backend
+        env:
+          MYSQL_TEST_URL: mysql+pymysql://root:ci-test-only@127.0.0.1:3306/lookahan_test_ci?charset=utf8mb4
+      - run: npm ci
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: cp Backend/.env.example Backend/.env && docker compose build

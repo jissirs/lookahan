@@ -11,20 +11,25 @@ import './StockTable.css'
  *   - keepOpen = true  : กดแล้วกล่องยังเปิดอยู่ (เหมาะกับ +/− ที่กดซ้ำๆ)
  *   - ไม่ใส่          : กดแล้วกล่องปิดเอง (เหมาะกับ ✎ − ที่เปิด popup ต่อ)
  */
-function RowActions({ label, actions }) {
+function RowActions({ label, actions, align = 'auto' }) {
   const [open, setOpen] = useState(false)
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
   const rootRef = useRef(null)
 
   // กดที่อื่นหรือกด Esc → ปิดกล่อง
   useDismiss(open, rootRef, () => setOpen(false))
 
-  const handleAction = (action) => {
+  const handleAction = async (action) => {
+    if (pendingRef.current) return
+    pendingRef.current = true
+    setPending(true)
     if (!action.keepOpen) setOpen(false)
-    action.onClick()
+    try { await action.onClick() } finally { pendingRef.current = false; setPending(false) }
   }
 
   return (
-    <div className="row-actions" ref={rootRef}>
+    <div className={`row-actions${align === 'left' ? ' row-actions--left' : ''}`} ref={rootRef}>
       <button
         type="button"
         className="stock-table-kebab"
@@ -44,8 +49,9 @@ function RowActions({ label, actions }) {
               type="button"
               className="stock-table-round"
               onClick={() => handleAction(action)}
-              disabled={action.disabled}
+              disabled={pending || action.disabled}
               aria-label={action.ariaLabel}
+              title={action.ariaLabel}
             >
               {action.symbol}
             </button>

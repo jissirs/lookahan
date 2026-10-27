@@ -1,5 +1,5 @@
 /**
- * หน้า Low stock (/stock/low) — รวมวัตถุดิบที่สถานะ Low หรือ Critical
+ * หน้า Low stock (/stock/low) — รวมวัตถุดิบที่สถานะ Low / Critical / Out of stock
  * พร้อมจำนวนที่ "ควรมี" (Required ≈) และปุ่มเติม stock ได้ทันที
  * เมื่อเติมจนพ้นสถานะใกล้หมด รายการนั้นจะหายไปจากหน้านี้เอง (คำนวณจากข้อมูลจริงทุกครั้ง)
  */
@@ -7,11 +7,13 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '../../components/PageShell.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
+import { useAuth } from '../../context/AuthContext.js'
 import { askNumber } from '../../utils/dialogs.js'
 import { estimateRequired, getStockStatus, stepFor } from '../../utils/stockStatus.js'
 import './stock.css'
 
 function LowStockPage() {
+  const { user } = useAuth()
   const { ingredients, menus, adjustQuantity } = useInventory()
 
   // เฉพาะที่ไม่ปกติ เรียงจากเหลือน้อยสุดก่อน แล้วคำนวณ "จำนวนที่ควรมี" ให้แต่ละตัว
@@ -65,7 +67,7 @@ function LowStockPage() {
                   <span className="low-stock-required">
                     Required ≈ {required} {item.unit}
                   </span>
-                  <button type="button" className="low-stock-add" onClick={() => handleAdd(item, required)}>
+                  <button type="button" className="low-stock-add" disabled={user?.role !== 'owner'} onClick={() => handleAdd(item, required)}>
                     [Add Stock]
                   </button>
                 </li>

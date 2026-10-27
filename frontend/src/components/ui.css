@@ -222,6 +222,7 @@
 .status-dot--normal { background: #7ed956; }
 .status-dot--low { background: #ffde59; }
 .status-dot--critical { background: #ff3131; }
+.status-dot--out_of_stock { background: #374151; }
 
 /* ---------- การ์ดสถิติ ---------- */
 .stat-card {
@@ -281,11 +282,15 @@
 
 .price-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 20px;
 }
 
 .price-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 110px;
   box-sizing: border-box;
   padding: 12px 18px;
@@ -294,6 +299,23 @@
   font-size: 24px;
   text-align: center;
 }
+
+.price-input {
+  width: 80px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: right;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.price-input::-webkit-inner-spin-button,
+.price-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.price-input:focus-visible { outline: 2px solid #5f7a4a; outline-offset: 4px; }
 
 /* ---------- สวิตช์ ---------- */
 .toggle {

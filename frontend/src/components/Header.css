@@ -7,6 +7,7 @@
   z-index: 100;
   width: 100%;
   height: calc(120 * var(--u));
+  min-height: 64px;
   background: #c2ccb3;
   font-family: 'Prompt', 'Noto Sans Thai', 'Segoe UI', Tahoma, sans-serif;
 }
@@ -14,11 +15,15 @@
 .app-header-logo-wrap {
   position: absolute;
   left: calc(50 * var(--u));
-  top: calc(8 * var(--u));
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .app-header-logo-btn {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   padding: 0;
   border: 0;
   background: none;
@@ -33,13 +38,38 @@
 
 .app-header-logo {
   display: block;
-  width: calc(112 * var(--u));
+  width: clamp(32px, 2.8vw, 54px);
+  height: clamp(32px, 2.8vw, 54px);
+  object-fit: contain;
 }
+
+.app-header-back {
+  position: absolute;
+  left: max(116px, calc(190 * var(--u)));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #5f7a4a;
+  border-radius: 8px;
+  background: #eef2e8;
+  color: #26351e;
+  font: inherit;
+  font-size: max(14px, calc(24 * var(--u)));
+  cursor: pointer;
+}
+
+.app-header-back:hover:not(:disabled) { background: #fff; }
+.app-header-back:focus-visible { outline: 2px solid #26351e; outline-offset: 3px; }
+.app-header-back:disabled { opacity: 0.5; cursor: default; }
 
 /* ---------- Navbar dropdown (กดที่โลโก้) ---------- */
 .app-header-nav {
   position: fixed;
-  top: calc(120 * var(--u));
+  top: max(64px, calc(120 * var(--u)));
   left: 0;
   z-index: 10;
   display: flex;
@@ -75,7 +105,7 @@
 .app-header-bell-wrap {
   position: absolute;
   left: calc(1540 * var(--u));
-  top: calc(24 * var(--u));
+  top: max(20px, calc(24 * var(--u)));
 }
 
 .app-header-bell {
@@ -89,7 +119,7 @@
 
 .app-header-bell img {
   display: block;
-  width: calc(62 * var(--u));
+  width: max(24px, calc(62 * var(--u)));
 }
 
 .app-header-badge {
@@ -113,7 +143,7 @@
 .app-header-user-wrap {
   position: absolute;
   left: calc(1632 * var(--u));
-  top: calc(35 * var(--u));
+  top: max(22px, calc(35 * var(--u)));
 }
 
 .app-header-user {
@@ -126,8 +156,8 @@
   color: #000;
   font-family: inherit;
   font-weight: 700;
-  font-size: calc(42 * var(--u));
-  line-height: calc(50 * var(--u));
+  font-size: max(14px, calc(42 * var(--u)));
+  line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -476,9 +506,46 @@
 @media (max-width: 760px) {
   .app-header-panel--bell {
     position: fixed;
-    top: calc(120 * var(--u) + 8px);
+    top: max(72px, calc(120 * var(--u) + 8px));
     left: 8px;
     right: 8px;
     width: auto;
   }
+}
+
+@media (max-width: 600px) {
+  .app-header-user-wrap { left: auto; right: 12px; }
+  .app-header-user-name {
+    max-width: 20vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .app-header-bell-wrap { left: auto; right: calc(20vw + 48px); }
+}
+
+
+/* Transparent emblem with a crisp wordmark instead of tiny text inside a bitmap. */
+.app-header-wordmark {
+  display: block;
+  color: #264731;
+  font-size: clamp(13px, 1.1vw, 20px);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -.4px;
+  text-align: center;
+}
+.app-header-wordmark small {
+  display: block;
+  margin-top: 3px;
+  font-size: clamp(5.5px, .42vw, 8px);
+  font-weight: 500;
+  letter-spacing: .6px;
+  color: #59704e;
+}
+@media (max-width: 700px) {
+  .app-header-wordmark { font-size: 11px; }
+  .app-header-wordmark small { font-size: 5px; letter-spacing: .35px; }
+  .app-header-logo-wrap { left: 8px; }
+  .app-header-logo { width: 30px; height: 30px; }
+  .app-header-back { left: 82px; padding: 6px 8px; font-size: 13px; }
 }

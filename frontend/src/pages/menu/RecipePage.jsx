@@ -6,19 +6,26 @@
  *   RecipePage (ตัวนอก)  หาเมนูจาก URL และจัดการกรณี "ไม่พบเมนู"
  *   └ Recipe (ตัวใน)     หน้าจริง
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import BackLink from '../../components/BackLink.jsx'
 import BorderedTable from '../../components/BorderedTable.jsx'
 import NotFoundMessage from '../../components/NotFoundMessage.jsx'
 import PageShell from '../../components/PageShell.jsx'
 import RowActions from '../../components/RowActions.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
-import { askNumber, confirmAction, notify, pickIngredient } from '../../utils/dialogs.js'
+import { askNumber, confirmAction, pickIngredient } from '../../utils/dialogs.js'
 import './menu.css'
 
 function Recipe({ menu }) {
   const navigate = useNavigate()
+  const [savingRecipe, setSavingRecipe] = useState(false)
+  const recipeBusy = useRef(false)
+  const editRecipe = async (work) => {
+    if (recipeBusy.current) return
+    recipeBusy.current = true
+    setSavingRecipe(true)
+    try { await work() } finally { recipeBusy.current = false; setSavingRecipe(false) }
+  }
   const { ingredients, updateMenu } = useInventory()
 
   // หมายเหตุเก็บแยกใน state เพราะพิมพ์ทีละตัว — จะบันทึกลง store ตอนออกจากช่อง (onBlur)
@@ -40,11 +47,6 @@ function Recipe({ menu }) {
     const usedIds = new Set(menu.recipe.map((r) => r.ingredientId))
     const available = ingredients.filter((i) => !usedIds.has(i.id))
 
-    if (available.length === 0) {
-      await notify({ icon: 'info', title: 'ใช้วัตถุดิบครบทุกรายการแล้ว', text: 'สร้างวัตถุดิบใหม่ได้ที่หน้า Stock' })
-      return
-    }
-
     const picked = await pickIngredient({ ingredients: available })
     if (!picked) return // กดยกเลิก
 
@@ -54,7 +56,7 @@ function Recipe({ menu }) {
       return
     }
 
-    saveRecipe([...menu.recipe, { ingredientId: picked.ingredientId, qty: picked.qty }])
+    return saveRecipe([...menu.recipe, { ingredientId: picked.ingredientId, qty: picked.qty }])
   }
 
   // แก้ปริมาณที่ใช้ต่อ 1 จาน
@@ -65,7 +67,7 @@ function Recipe({ menu }) {
       unit: line.ingredient.unit,
       confirmText: 'บันทึก',
     })
-    if (qty) saveRecipe(menu.recipe.map((r) => (r.ingredientId === line.ingredientId ? { ...r, qty } : r)))
+    if (qty) return saveRecipe(menu.recipe.map((r) => (r.ingredientId === line.ingredientId ? { ...r, qty } : r)))
   }
 
   // ลบออกจากสูตร (ถามยืนยันก่อน — ลบแล้วสถานะ "วัตถุดิบไม่พอ" ของเมนูอาจเปลี่ยน)
@@ -74,14 +76,13 @@ function Recipe({ menu }) {
       title: `ลบ ${line.ingredient.name} ออกจากสูตร?`,
       confirmText: 'ลบ',
     })
-    if (ok) saveRecipe(menu.recipe.filter((r) => r.ingredientId !== line.ingredientId))
+    if (ok) return saveRecipe(menu.recipe.filter((r) => r.ingredientId !== line.ingredientId))
   }
 
   return (
     <PageShell>
       <div className="recipe">
         <div className="recipe-top">
-          <BackLink to="/menu" label="Menu" />
           <h1 className="page-title">{menu.name}</h1>
         </div>
 
@@ -103,7 +104,7 @@ function Recipe({ menu }) {
           <div className="recipe-add">
             {/* เตือนเมื่อสูตรยังว่าง (เมนูใหม่ที่เพิ่งสร้างจะเห็นข้อความนี้) */}
             {lines.length === 0 && <p className="recipe-hint">ต้องเพิ่มวัตถุดิบ</p>}
-            <button type="button" className="btn-pill btn-pill--tan btn-pill--sm" onClick={handleAdd}>
+            <button type="button" className="btn-pill btn-pill--tan btn-pill--sm" disabled={savingRecipe} onClick={() => editRecipe(handleAdd)}>
               + เพิ่มวัตถุดิบ
             </button>
           </div>
@@ -135,8 +136,8 @@ function Recipe({ menu }) {
                   <RowActions
                     label={line.ingredient.name}
                     actions={[
-                      { key: 'edit', symbol: '✎', ariaLabel: `Edit ${line.ingredient.name}`, onClick: () => handleEdit(line) },
-                      { key: 'remove', symbol: '−', ariaLabel: `Remove ${line.ingredient.name}`, onClick: () => handleRemove(line) },
+                      { key: 'edit', symbol: '✎', ariaLabel: `Edit ${line.ingredient.name}`, disabled: savingRecipe, onClick: () => editRecipe(() => handleEdit(line)) },
+                      { key: 'remove', symbol: '−', ariaLabel: `Remove ${line.ingredient.name}`, disabled: savingRecipe, onClick: () => editRecipe(() => handleRemove(line)) },
                     ]}
                   />
                 </td>
@@ -156,7 +157,7 @@ function RecipePage() {
 
   // ไม่พบเมนู (เช่น พิมพ์ URL ผิด)
   if (!menu) {
-    return <NotFoundMessage message="ไม่พบเมนูนี้" backTo="/menu" backLabel="Menu" />
+    return <NotFoundMessage message="ไม่พบเมนูนี้" />
   }
 
   // key: ให้หน้าเริ่มใหม่ (รวมถึงช่องหมายเหตุ) เมื่อสลับไปดูเมนูอื่น

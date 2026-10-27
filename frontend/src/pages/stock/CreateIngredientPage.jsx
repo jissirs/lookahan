@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell.jsx'
+import PurchaseFields from '../../components/PurchaseFields.jsx'
 import PriceField from '../../components/PriceField.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
 import { INGREDIENT_CATEGORIES, INGREDIENT_UNITS } from '../../data/options.js'
@@ -21,6 +22,8 @@ function CreateIngredientPage() {
   const [name, setName] = useState('')
   const [category, setCategory] = useState(INGREDIENT_CATEGORIES[0])
   const [unit, setUnit] = useState(INGREDIENT_UNITS[0])
+  const [purchaseUnit, setPurchaseUnit] = useState(INGREDIENT_UNITS[0])
+  const [purchaseSize, setPurchaseSize] = useState(1)
   const [price, setPrice] = useState(20)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false) // กำลังรอ api
@@ -31,6 +34,7 @@ function CreateIngredientPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (submitting) return // กันกดซ้ำระหว่างรอผลจาก api
+    if (!e.currentTarget.reportValidity()) return
 
     // ตรวจเบื้องต้นฝั่งหน้าจอ (ให้ตอบสนองทันที) — กฎจริง เช่น "ชื่อห้ามซ้ำ" ตรวจที่ api
     const trimmed = name.trim()
@@ -41,7 +45,7 @@ function CreateIngredientPage() {
 
     setSubmitting(true)
     try {
-      const newId = await addIngredient({ name: trimmed, category, unit, price })
+      const newId = await addIngredient({ name: trimmed, category, unit, purchaseUnit, purchaseSize, purchasePrice: price })
 
       // replace: กดย้อนกลับแล้วไม่วนกลับมาฟอร์มนี้อีก
       navigate(returnTo ?? `/stock/${newId}`, { replace: true })
@@ -99,7 +103,7 @@ function CreateIngredientPage() {
             <label className="field-label" htmlFor="ing-unit">
               หน่วย
             </label>
-            <select id="ing-unit" className="field-select" value={unit} onChange={(e) => setUnit(e.target.value)}>
+            <select id="ing-unit" className="field-select" value={unit} onChange={(e) => { setUnit(e.target.value); setPurchaseUnit(e.target.value); setPurchaseSize(1) }}>
               {INGREDIENT_UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -108,8 +112,9 @@ function CreateIngredientPage() {
             </select>
           </div>
 
+          <PurchaseFields unit={unit} purchaseUnit={purchaseUnit} purchaseSize={purchaseSize} onChange={(u, n) => { setPurchaseUnit(u); setPurchaseSize(n) }} />
           <div className="field">
-            <span className="field-label">ราคา</span>
+            <span className="field-label">ราคาต่อ {purchaseUnit} (บาท)</span>
             <PriceField value={price} onChange={setPrice} />
           </div>
 

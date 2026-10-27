@@ -92,14 +92,14 @@ function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register({
+      const result = await register({
         name: form.name,
         surname: form.surname,
         email: form.email,
         password: form.password,
       })
 
-      // สำเร็จ → ไปหน้า Login พร้อมเติมอีเมลและแจ้งว่าสร้างบัญชีแล้ว
+      await notify({ icon: 'success', title: 'สร้างบัญชีแล้ว', text: result.user.approved ? 'เข้าใช้งานได้เลย' : 'รอเจ้าของร้านอนุมัติบัญชี ก่อนเข้าสู่ระบบ' })
       navigate('/login', { replace: true, state: { username: form.email.trim(), registered: true } })
     } catch (err) {
       if (err.code === 'EMAIL_TAKEN') {

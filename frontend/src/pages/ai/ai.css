@@ -341,6 +341,7 @@
 .ai-inventory-normal { background: #dff5d0 !important; }
 .ai-inventory-low { background: #fff4cc !important; }
 .ai-inventory-critical { background: #fde8e8 !important; }
+.ai-inventory-out_of_stock { background: #e5e7eb !important; color: #374151; }
 
 /* ---------- ความสดของวัตถุดิบ (ค้างคืนน้อย = ดี) ---------- */
 .ai-fresh-score {

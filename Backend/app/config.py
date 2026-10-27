@@ -25,6 +25,9 @@ if DATABASE_URL.startswith('mysql') and 'charset=' not in DATABASE_URL:
 
 # ฐานข้อมูลออนไลน์ส่วนใหญ่บังคับ SSL: ใส่ path ของไฟล์ CA ใน DB_SSL_CA (เว้นว่างถ้าไม่ต้องใช้)
 ENGINE_OPTIONS = {'pool_pre_ping': True}  # ตรวจการเชื่อมต่อก่อนใช้ทุกครั้ง กัน connection ที่ถูกปิดไปแล้ว
+if DATABASE_URL.startswith('mysql'):
+    # Read batches after acquiring ingredient locks without an earlier auth query's stale snapshot.
+    ENGINE_OPTIONS['isolation_level'] = 'READ COMMITTED'
 DB_SSL_CA = os.getenv('DB_SSL_CA', '').strip()
 if DB_SSL_CA and not DATABASE_URL.startswith('sqlite'):
     ENGINE_OPTIONS['connect_args'] = {'ssl': {'ca': DB_SSL_CA}}
@@ -61,6 +64,13 @@ class Config:
     GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip()
     GROQ_MODEL = os.getenv('GROQ_MODEL', '').strip() or 'openai/gpt-oss-120b'
 
+    # ของสด: ซื้อให้พอกับสูตร × จานที่คาดว่าจะขาย โดยไม่เติมให้พ้นเกณฑ์ Low
+    FRESH_STOCK_CATEGORIES = tuple(value.strip() for value in os.getenv('FRESH_STOCK_CATEGORIES', 'Meat,Vegetable,Fruit').split(',') if value.strip())
+    FRESH_STOCK_BUFFER_PERCENT = float(os.getenv('FRESH_STOCK_BUFFER_PERCENT', '').strip() or '0')
+    FRESH_STOCK_PURCHASE_STEP = int(os.getenv('FRESH_STOCK_PURCHASE_STEP', '').strip() or '1')
+    if not 0 <= FRESH_STOCK_BUFFER_PERCENT <= 100 or FRESH_STOCK_PURCHASE_STEP < 1:
+        raise ValueError('เกณฑ์ของสด: BUFFER_PERCENT ต้องอยู่ในช่วง 0–100 และ PURCHASE_STEP ต้องไม่น้อยกว่า 1')
+
     # True = ตอบ OTP กลับไปในคำตอบ (โหมดทดลอง) — เปิดเฉพาะเมื่อ "ยังไม่ตั้งค่าอีเมล" และไม่ใช่ production
     # ตั้งค่าอีเมลแล้ว OTP จะถูกส่งทางอีเมลเท่านั้น ไม่ตอบกลับตรง ๆ อีกต่อไป
     IS_PRODUCTION = os.getenv('APP_ENV') == 'production'
@@ -68,7 +78,11 @@ class Config:
 
 
 class TestingConfig(Config):
+    IS_PRODUCTION = False
     TESTING = True
+    FRESH_STOCK_CATEGORIES = ('Meat', 'Vegetable', 'Fruit')
+    FRESH_STOCK_BUFFER_PERCENT = 0
+    FRESH_STOCK_PURCHASE_STEP = 1
     SQLALCHEMY_DATABASE_URI = 'sqlite://'  # ฐานข้อมูลในหน่วยความจำ หายเมื่อเทสต์จบ
     SQLALCHEMY_ENGINE_OPTIONS = {}
     SECRET_KEY = 'test'

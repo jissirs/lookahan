@@ -1,9 +1,10 @@
 # lookahan Backend (Flask)
 
 ระบบหลังบ้านของแอปจัดการ stock วัตถุดิบ เมนู และออเดอร์ร้านอาหาร พร้อม AI (Groq) พยากรณ์ยอดขายของวันพรุ่งนี้
+คู่มือร้านเดียวและ deployment ล่าสุด: [PRODUCTION.md](../PRODUCTION.md)
 เขียนด้วย Python + Flask ให้ **อ่านง่าย เหมาะกับใช้สอน**: ไม่มีชั้นซ้อนหลายชั้น ไฟล์แต่ละไฟล์ทำงานครบในตัว และมีคอมเมนต์ภาษาไทยทุกจุดสำคัญ
 
-> สถานะ: หน้าเว็บ (`frontend/`) ต่อกับ Backend นี้แล้ว **ไม่มีข้อมูลจำลองในระบบ** ฐานข้อมูลเริ่มต้นว่างเปล่า — สมัครผู้ใช้คนแรกที่หน้า Register แล้วเพิ่มข้อมูลผ่านหน้าเว็บ
+> ฐานข้อมูลใหม่เริ่มว่าง: โหมดพัฒนาสมัครคนแรกเป็นเจ้าของร้านได้ ส่วน production สร้างเจ้าของผ่าน `flask --app wsgi bootstrap-owner` ผู้สมัครภายหลังต้องรออนุมัติ ไม่ seed ข้อมูลตัวอย่างอัตโนมัติ
 > ลำดับการเปิด: **รัน Backend ก่อน** แล้วค่อย `npm run dev` ที่ `frontend/`
 
 ---
@@ -214,7 +215,7 @@ AI ในระบบมี **8 หน้าที่** — ผลถูกบ�
 
 ### ผลที่ AI วิเคราะห์ได้ (ฟิลด์ใน `POST /ai/forecast` และ `forecast` ของ `GET /dashboard/summary`)
 
-`orders`, `peakStart`, `peakEnd`, `bestSeller`, `hourly[]`, `categories[]`, **`revenue`** (รายได้พรุ่งนี้, บาท), **`avgOrderValue`**, **`daily[]`** (7 วัน: `date`, `weekday`, `orders`, `revenue`), **`inventory`** (`total`, `normal`, `low`, `critical`, `byCategory`, `check` = ประโยคสรุปของ AI), **`alerts[]`** (`type`, `name`, `level`, `title`, `message`, `detail`, `link`), **`outlook`** (แผนความสด), **`specials[]`** (เมนูพิเศษ: `name`, `description`, `category`, `price`, `cost`, `ingredients[]`, `uses[]`), `advice[]`, `source`, `generatedAt`
+`orders`, `peakStart`, `peakEnd`, `bestSeller`, `hourly[]`, `categories[]`, **`revenue`** (รายได้พรุ่งนี้, บาท), **`avgOrderValue`**, **`daily[]`** (7 วัน: `date`, `weekday`, `orders`, `revenue`), **`inventory`** (`total`, `normal`, `low`, `critical`, `out_of_stock`, `byCategory`, `check` = ประโยคสรุปของ AI), **`alerts[]`** (`type`, `name`, `level`, `title`, `message`, `detail`, `link`), **`outlook`** (แผนความสด), **`specials[]`** (เมนูพิเศษ: `name`, `description`, `category`, `price`, `cost`, `ingredients[]`, `uses[]`), `advice[]`, `source`, `generatedAt`
 
 ### ตั้งค่า
 1. สมัครและสร้างคีย์ที่ https://console.groq.com/keys
@@ -456,8 +457,8 @@ Backend/
 ### ข้อจำกัดตอนนี้ (ต้องรู้)
 - **อีเมล OTP ส่งแบบรอผลในคำขอเดียว (synchronous)** — ผู้ใช้รอประมาณ 1–3 วินาทีตอนกดขอ OTP ถ้าส่งปริมาณมากควรย้ายไปส่งเบื้องหลัง (queue) และ Gmail จำกัดราว 500 ฉบับ/วัน
 - **ถ้ายังไม่ตั้งค่าอีเมล ระบบอยู่ในโหมดทดลอง** — ตอบ OTP กลับบนหน้าจอ (ใช้เฉพาะตอนพัฒนา) ก่อนใช้งานจริงต้องตั้งค่าอีเมลและตั้ง `APP_ENV=production`
-- **ผู้สมัครใหม่เข้า "สาขาแรก" ที่มีอยู่** เพราะหน้าสมัครยังไม่มีช่องชื่อร้าน — ถ้าจะให้ร้านใครร้านมัน ต้องเพิ่มช่องชื่อร้านที่หน้าสมัคร
-- **สร้างตารางด้วย `init-db` เท่านั้น** ยังไม่มีระบบ migration — ถ้าแก้โครงสร้างตารางใน `models.py` ทีหลัง `init-db` จะไม่แก้ตารางที่มีอยู่แล้ว (ต้องลบตารางเก่าเอง หรือเพิ่ม Flask-Migrate ก่อนใช้กับข้อมูลจริง)
+- **ระบบสำหรับร้านเดียว** ผู้สมัครใหม่เป็นพนักงานรออนุมัติจากเจ้าของร้านที่หน้า Statistics บัญชีรออนุมัติเข้าถึงข้อมูลร้านไม่ได้
+- **อัปเกรดตารางที่มีข้อมูลด้วย `python scripts/upgrade_inventory.py --apply`** มี backup ก่อนเปลี่ยน schema; `init-db` ใช้สร้างตารางใหม่ ไม่ใช้ลบตารางเพื่ออัปเกรด
 - **AI พยากรณ์ได้ดีเมื่อมีประวัติหลายวัน** — ข้อมูลน้อย (ไม่กี่ออเดอร์) ผลจะคลาดเคลื่อน และการเรียก AI มีโควตา/ค่าใช้จ่ายตามแพ็กเกจของ Groq
 - **หน้าเว็บต่อกับ Backend ผ่าน proxy ของ Vite** — คำขอ `/api/...` จากหน้าเว็บ (พอร์ต 5173) ถูกส่งต่อมาที่ Backend พอร์ต 5000 ให้เอง ถ้าเปลี่ยนพอร์ต Backend ให้ตั้ง `VITE_BACKEND_URL` ใน `frontend/.env`
 

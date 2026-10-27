@@ -16,7 +16,7 @@ export function getMenuStatus(menu, ingredients) {
   // (เมนูที่ไม่มีสูตรเลย every() จะได้ true → ถือว่าพร้อมขาย เช่น เครื่องดื่ม)
   const hasEnough = menu.recipe.every((line) => {
     const ingredient = ingredients.find((i) => i.id === line.ingredientId)
-    return ingredient && ingredient.quantity >= line.qty
+    return ingredient && (ingredient.usableQuantity ?? ingredient.quantity) >= line.qty
   })
 
   return hasEnough ? 'ready' : 'short'

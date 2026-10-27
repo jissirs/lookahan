@@ -9,12 +9,12 @@
  */
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import BackLink from '../../components/BackLink.jsx'
 import ImageUpload from '../../components/ImageUpload.jsx'
 import NotFoundMessage from '../../components/NotFoundMessage.jsx'
 import PageShell from '../../components/PageShell.jsx'
 import PriceField from '../../components/PriceField.jsx'
 import ToggleSwitch from '../../components/ToggleSwitch.jsx'
+import ModifierEditor from './ModifierEditor.jsx'
 import { useInventory } from '../../context/InventoryContext.js'
 import { MENU_CATEGORIES } from '../../data/options.js'
 import './menu.css'
@@ -27,6 +27,7 @@ const EMPTY_MENU = {
   image: '',
   details: '',
   available: false,
+  modifiers: [],
 }
 
 function MenuForm({ menu }) {
@@ -46,6 +47,7 @@ function MenuForm({ menu }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (submitting) return // กันกดซ้ำระหว่างรอผลจาก api
+    if (!e.currentTarget.reportValidity()) return
 
     const name = form.name.trim()
     if (!name) {
@@ -61,6 +63,7 @@ function MenuForm({ menu }) {
       image: form.image,
       details: form.details,
       available: form.available,
+      modifiers: form.modifiers.map(option => ({ ...option, price: Number(option.price), ingredients: option.ingredients.map(line => ({ ...line, qty: Number(line.qty) })) })),
     }
 
     setSubmitting(true)
@@ -87,7 +90,6 @@ function MenuForm({ menu }) {
       {/* noValidate: ปิดข้อความตรวจของเบราว์เซอร์ ใช้ข้อความของเราเอง */}
       <form className="menu-form" onSubmit={handleSubmit} noValidate>
         <div className="menu-form-top">
-          <BackLink to="/menu" label="Menu" />
           <h1 className="menu-form-title">{isEdit ? 'Edit' : 'Create'}</h1>
         </div>
 
@@ -153,7 +155,7 @@ function MenuForm({ menu }) {
 
             <div className="field">
               <span className="field-label">ราคา</span>
-              <PriceField value={form.price} onChange={set('price')} />
+              <PriceField value={form.price} onChange={set('price')} step={5} />
             </div>
 
             <div className="field">
@@ -161,6 +163,7 @@ function MenuForm({ menu }) {
               <ToggleSwitch checked={form.available} onChange={set('available')} onLabel="พร้อมขาย" offLabel="ไม่พร้อมขาย" />
             </div>
 
+            <ModifierEditor value={form.modifiers} onChange={set('modifiers')} />
             <div className="menu-form-buttons">
               <button type="submit" className="btn-pill btn-pill--cream" disabled={submitting}>
                 {isEdit ? 'บันทึก' : 'บันทึกและเพิ่มสูตร'}
@@ -183,7 +186,7 @@ function MenuFormPage() {
 
   // มี id ใน URL แต่ไม่พบเมนู (เช่น พิมพ์ URL ผิด)
   if (id && !menu) {
-    return <NotFoundMessage message="ไม่พบเมนูนี้" backTo="/menu" backLabel="Menu" />
+    return <NotFoundMessage message="ไม่พบเมนูนี้" />
   }
 
   // key: บังคับให้ฟอร์มเริ่มใหม่เมื่อสลับระหว่างเมนู หรือระหว่างแก้ไข/สร้างใหม่

@@ -41,6 +41,7 @@ export async function askNumber({ title, text, min = 1, max, value = 1, confirmT
     inputValidator: (v) => {
       const n = Number(v)
       if (!v || !Number.isFinite(n)) return 'กรุณากรอกจำนวน'
+      if (!Number.isInteger(n)) return 'จำนวนต้องเป็นจำนวนเต็ม'
       if (n < min) return `จำนวนต้องไม่น้อยกว่า ${min}`
       if (max !== undefined && n > max) return `จำนวนต้องไม่เกิน ${max}`
       return undefined
@@ -111,7 +112,7 @@ export async function pickIngredient({ ingredients, title = 'เพิ่มว�
         Swal.showValidationMessage('กรุณาเลือกวัตถุดิบ')
         return false // false = ไม่ปิดกล่อง
       }
-      if (!Number.isFinite(qty) || qty < 1) {
+      if (!Number.isInteger(qty) || qty < 1) {
         Swal.showValidationMessage('จำนวนต้องไม่น้อยกว่า 1')
         return false
       }

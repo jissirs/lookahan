@@ -10,8 +10,9 @@
 """
 from datetime import timedelta
 from html import escape
+import re
 
-from flask import Blueprint, current_app, g, jsonify
+from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import db
 from ..models import Branch, PasswordReset, Session, User, now
@@ -63,6 +64,8 @@ def register():
     # ขั้นที่ 1: ตรวจข้อมูล
     if is_blank(body.get('name')) or is_blank(body.get('surname')) or is_blank(body.get('email')):
         raise ApiError('VALIDATION', 'Please fill in all fields')
+    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', body['email'].strip()):
+        raise ApiError('VALIDATION', 'อีเมลไม่ถูกต้อง')
 
     password_error = get_password_error(body.get('password'))
     if password_error:
@@ -71,9 +74,12 @@ def register():
     if find_user_by_email(body['email']):
         raise ApiError('EMAIL_TAKEN', 'This email is already registered')
 
-    # ขั้นที่ 2: ผู้สมัครใหม่เข้าสาขาแรกที่มี (ถ้ายังไม่มีสาขาเลยก็สร้างให้)
+    # One restaurant: first account owns it; later accounts require owner approval.
     # [R] READ: ดึงสาขาที่ id น้อยที่สุดจากตาราง branches (ถ้ายังไม่มีแถวเลยจะได้ None)
-    branch = Branch.query.order_by(Branch.id).first()
+    branch = Branch.query.order_by(Branch.id).with_for_update().first()
+    first_user = User.query.first() is None
+    if first_user and current_app.config['IS_PRODUCTION']:
+        raise ApiError('FORBIDDEN', 'กรุณาให้ผู้ดูแลสร้างเจ้าของร้านผ่านคำสั่ง bootstrap-owner ก่อน')
     if branch is None:
         branch = Branch(name=body['name'].strip() + ' shop')
 
@@ -84,6 +90,7 @@ def register():
         surname=body['surname'].strip(),
         email=body['email'].strip(),
         password_hash=hash_password(body['password']),
+        role='owner' if first_user else 'staff', approved=first_user,
     )
     # [C] CREATE (INSERT): เพิ่มผู้ใช้ใหม่ 1 แถวในตาราง users (ถ้าสาขาเป็นของใหม่ จะถูกบันทึกลงตาราง branches ให้ด้วย)
     db.session.add(user)
@@ -107,10 +114,13 @@ def login():
     # ลองทีละคน คนไหนรหัสผ่านถูกก็ล็อกอินให้
     for user in candidates:
         if password_matches(user.password_hash, body.get('password') or ''):
+            if not user.approved:
+                raise ApiError('PENDING_APPROVAL', 'รอเจ้าของร้านอนุมัติบัญชีก่อนเข้าใช้งาน')
             token = make_token()
             expires = now() + timedelta(days=current_app.config['SESSION_LIFETIME_DAYS'])
             # [C] CREATE: เพิ่มแถวในตาราง sessions = "ออกบัตรผ่าน" ให้ผู้ใช้ (เก็บเฉพาะค่าตีป่นของ token)
-            db.session.add(Session(user_id=user.id, token_hash=hash_text(token), expires_at=expires))
+            db.session.add(Session(user_id=user.id, token_hash=hash_text(token), expires_at=expires,
+                device_name=request.headers.get('User-Agent', 'Browser')[:160], last_seen_at=now()))
             db.session.commit()
             return jsonify({'token': token, 'user': user.to_json()})
 
